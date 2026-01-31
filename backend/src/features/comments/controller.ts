@@ -42,5 +42,7 @@ export const CommentController = new Elysia({ prefix: "/api/comments" })
       const limit = Number(query.limit) || 10;
       
       const [err, data] = await CommentService.getMine(user.id, page, limit);
+      if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch comments");
+      
       return Result.success(data);
   });

@@ -2,7 +2,7 @@
 import { Elysia } from "elysia";
 
 export const loggerMiddleware = new Elysia()
-  .derive(({ request }) => {
+  .derive(() => {
     return {
       startTime: Date.now()
     }

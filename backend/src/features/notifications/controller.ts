@@ -11,6 +11,11 @@ export const NotificationController = new Elysia({ prefix: "/api/notifications" 
   .get("/", async ({ user }: any) => {
     if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
     const [err, data] = await NotificationService.getMyNotifications(user.id);
+    
+    if (err !== ErrorCode.SUCCESS) {
+       throw new BizError(err, "Failed to fetch notifications");
+    }
+
     return Result.success(data);
   }, {
       response: { 200: createResponseSchema(NotificationListSchema) }

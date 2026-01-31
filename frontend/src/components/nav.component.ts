@@ -3,11 +3,10 @@ import { Component, inject, output, signal } from '@angular/core';
 import { LanguageService } from '../services/language.service';
 import { ThemeService, Theme } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
-import { UpperCasePipe } from '@angular/common';
 
 @Component({
   selector: 'app-nav',
-  imports: [UpperCasePipe],
+  imports: [],
   template: `
     <nav class="fixed top-0 left-0 right-0 z-50 bg-brand-darker/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -105,14 +104,14 @@ import { UpperCasePipe } from '@angular/common';
   `
 })
 export class NavComponent {
-  navChange = output<string>();
-  mobileMenuOpen = signal(false);
   langService = inject(LanguageService);
   themeService = inject(ThemeService);
   authService = inject(AuthService);
-
+  
   t = this.langService.text;
-  theme = this.themeService.currentTheme;
+  mobileMenuOpen = signal(false);
+  
+  navChange = output<string>();
 
   toggleMobileMenu() {
     this.mobileMenuOpen.update(v => !v);
@@ -121,9 +120,5 @@ export class NavComponent {
   navigateTo(page: string) {
     this.navChange.emit(page);
     this.mobileMenuOpen.set(false);
-  }
-
-  setTheme(t: Theme) {
-    this.themeService.setTheme(t);
   }
 }
