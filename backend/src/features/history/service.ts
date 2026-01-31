@@ -26,7 +26,7 @@ export const HistoryService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async getMyHistory(userId: string, page: number = 1, limit: number = 10): Promise<[ErrorCode, any | null]> {
+  async getMyHistory(userId: string, page: number = 1, limit: number = 10): Promise<[ErrorCode, any]> {
     const offset = (page - 1) * limit;
     
     const history = await db.select({

@@ -20,7 +20,7 @@ export const NotificationService = {
     });
   },
 
-  async getMyNotifications(userId: string): Promise<[ErrorCode, any | null]> {
+  async getMyNotifications(userId: string): Promise<[ErrorCode, any]> {
     const list = await db.select({
         id: notifications.id,
         type: notifications.type,
@@ -38,7 +38,7 @@ export const NotificationService = {
     return [ErrorCode.SUCCESS, list];
   },
 
-  async markAsRead(userId: string, notificationId: string): Promise<[ErrorCode, null]> {
+  async markAsRead(userId: string, notificationId: string): Promise<[ErrorCode, any]> {
     await db.update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.id, notificationId)); // Simplification: strict user check recommended in prod

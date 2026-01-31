@@ -8,7 +8,7 @@ import { CreatePostDTO, PostResponse } from "./post.model";
 import { EventBus } from "../../utils/event-bus";
 
 export const PostService = {
-  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, PostResponse | null]> {
+  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, PostResponse]> {
     const offset = (page - 1) * limit;
 
     const all = await db
@@ -41,7 +41,7 @@ export const PostService = {
     }];
   },
 
-  async create(userId: string, body: CreatePostDTO): Promise<[ErrorCode, any | null]> {
+  async create(userId: string, body: CreatePostDTO): Promise<[ErrorCode, any]> {
     const tagsList = body.tags.split(",").map((s) => s.trim());
     
     const wordCount = body.content.trim().split(/\s+/).length;

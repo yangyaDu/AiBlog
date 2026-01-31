@@ -1,3 +1,4 @@
+
 {
   "name": "devfolio-api",
   "version": "1.0.0",
@@ -7,20 +8,20 @@
     "start": "bun run src/index.ts",
     "check": "tsc --noEmit",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint": "echo 'No linter configured yet'"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.0.2",
-    "@elysiajs/jwt": "^1.0.2",
-    "@elysiajs/static": "^1.0.2",
-    "@elysiajs/swagger": "^1.0.5",
-    "drizzle-orm": "^0.31.2",
-    "elysia": "^1.0.25"
+    "elysia": "1.0.25",
+    "@elysiajs/cors": "1.0.2",
+    "@elysiajs/jwt": "1.0.2",
+    "@elysiajs/static": "1.0.2",
+    "@elysiajs/swagger": "1.0.5",
+    "drizzle-orm": "0.31.2"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
-    "bun-types": "^1.1.13",
-    "drizzle-kit": "^0.22.7",
-    "typescript": "^5.5.2"
+    "bun-types": "1.1.13",
+    "drizzle-kit": "0.22.7",
+    "typescript": "5.5.2"
   }
 }

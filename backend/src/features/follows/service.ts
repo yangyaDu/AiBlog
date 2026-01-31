@@ -6,12 +6,12 @@ import { ErrorCode } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
 export const FollowService = {
-  async follow(followerId: string, targetId: string): Promise<[ErrorCode, null]> {
-    if (followerId === targetId) return [ErrorCode.VALIDATION_ERROR, null];
+  async follow(followerId: string, targetId: string): Promise<[ErrorCode, any]> {
+    if (followerId === targetId) return [ErrorCode.VALIDATION_ERROR, "Cannot follow self"];
     
     // Check exist
     const target = await db.select().from(users).where(eq(users.id, targetId)).get();
-    if (!target) return [ErrorCode.NOT_FOUND, null];
+    if (!target) return [ErrorCode.NOT_FOUND, "User not found"];
 
     try {
         await db.insert(follows).values({ followerId, followingId: targetId });
@@ -22,7 +22,7 @@ export const FollowService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async unfollow(followerId: string, targetId: string): Promise<[ErrorCode, null]> {
+  async unfollow(followerId: string, targetId: string): Promise<[ErrorCode, any]> {
     await db.delete(follows).where(and(eq(follows.followerId, followerId), eq(follows.followingId, targetId)));
     return [ErrorCode.SUCCESS, null];
   },

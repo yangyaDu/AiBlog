@@ -7,7 +7,7 @@ import { ErrorCode } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
 export const CommentService = {
-  async create(userId: string, postId: string, content: string, parentId?: string): Promise<[ErrorCode, any | null]> {
+  async create(userId: string, postId: string, content: string, parentId?: string): Promise<[ErrorCode, any]> {
     const newComment = {
         id: randomUUID(),
         postId,
@@ -30,7 +30,7 @@ export const CommentService = {
     return [ErrorCode.SUCCESS, newComment];
   },
 
-  async delete(userId: string, commentId: string): Promise<[ErrorCode, null]> {
+  async delete(userId: string, commentId: string): Promise<[ErrorCode, any]> {
     const comment = await db.select().from(postComments).where(eq(postComments.id, commentId)).get();
     if (!comment) return [ErrorCode.NOT_FOUND, null];
     if (comment.userId !== userId) return [ErrorCode.FORBIDDEN, null];
@@ -39,7 +39,7 @@ export const CommentService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async getMine(userId: string, page: number, limit: number): Promise<[ErrorCode, any | null]> {
+  async getMine(userId: string, page: number, limit: number): Promise<[ErrorCode, any]> {
       const offset = (page - 1) * limit;
       const data = await db.select().from(postComments)
         .where(and(eq(postComments.userId, userId), isNull(postComments.deletedAt)))

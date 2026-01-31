@@ -35,5 +35,4 @@ export const rateLimiterMiddleware = new Elysia()
       }
       current.count++;
     }
-  })
-  .as("scoped");;
+  });

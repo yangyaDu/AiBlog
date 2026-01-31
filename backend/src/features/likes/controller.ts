@@ -4,23 +4,15 @@ import { LikeService } from "./service";
 import { ToggleLikeResponse } from "./model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { ErrorCode, getErrorInfo } from "../../utils/types";
+import { BizError, ErrorCode } from "../../utils/types";
 
 export const LikeController = new Elysia({ prefix: "/api/likes" })
   .use(authMiddleware)
-  .post("/", async ({ body, user, set }: any) => {
-    if (!user) {
-      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
-      set.status = errorInfo.status;
-      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
-    }
+  .post("/", async ({ body, user }: any) => {
+    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
     
     const [err, data] = await LikeService.toggle(user.id, body.postId);
-    if (err !== ErrorCode.SUCCESS) {
-      const errorInfo = getErrorInfo(err);
-      set.status = errorInfo.status;
-      return Result.error(err, errorInfo.message, null);
-    }
+    if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to toggle like");
 
     return Result.success(data);
   }, { 

@@ -16,5 +16,4 @@ export const loggerMiddleware = new Elysia()
     const size = contentLength ? `${(parseInt(contentLength) / 1024).toFixed(2)}KB` : '0KB';
 
     console.log(`[${new Date().toISOString()}] ${request.method} ${path} - ${duration}ms - Size: ${size}`);
-  })
-  .as("scoped");
+  });

@@ -1,0 +1,31 @@
+
+{
+  "name": "devfolio-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prepare": "husky install",
+    "check:backend": "cd backend && bun run check",
+    "check:frontend": "cd frontend && npm run build -- --configuration=development --watch=false",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0"
+  },
+  "lint-staged": {
+    "backend/**/*.{ts,tsx}": [
+      "bash -c \"npm run check:backend\""
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "bash -c \"npm run check:frontend\""
+    ],
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix"
+    ]
+  }
+}

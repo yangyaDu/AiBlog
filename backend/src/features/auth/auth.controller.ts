@@ -4,19 +4,21 @@ import { AuthService } from "./auth.service";
 import { RegisterSchema, LoginSchema, RegisterDTO, LoginDTO, AuthResponseSchema } from "./auth.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { ErrorCode, getErrorInfo } from "../../utils/types";
+import { BizError, ErrorCode } from "../../utils/types";
 
 export const AuthController = new Elysia({ prefix: "/api/auth" })
   .use(authMiddleware)
   .post(
     "/register",
-    async ({ body, set }) => {
-      const [err, userId] = await AuthService.register(body);
+    async ({ body }) => {
+      const [err, userId] = await AuthService.register(body as RegisterDTO);
       
       if (err !== ErrorCode.SUCCESS) {
-        const errorInfo = getErrorInfo(err);
-        set.status = errorInfo.status;
-        return Result.error(err, errorInfo.message, null);
+        if (err === ErrorCode.USER_EXISTS) {
+             // Code 1001
+             throw new BizError(ErrorCode.USER_EXISTS, "User already exists", 409);
+        }
+        throw new BizError(err, "Registration failed");
       }
 
       return Result.success({ userId }, "Registered successfully");
@@ -30,13 +32,12 @@ export const AuthController = new Elysia({ prefix: "/api/auth" })
   )
   .post(
     "/login",
-    async ({ body, jwt, set }) => {
+    async ({ body, jwt }) => {
       const [err, user] = await AuthService.login(body as LoginDTO);
       
       if (err !== ErrorCode.SUCCESS || !user) {
-        const errorInfo = getErrorInfo(ErrorCode.INVALID_CREDENTIALS);
-        set.status = errorInfo.status;
-        return Result.error(ErrorCode.INVALID_CREDENTIALS, errorInfo.message, null);
+        // Code 1002
+        throw new BizError(ErrorCode.INVALID_CREDENTIALS, "Invalid username or password", 401);
       }
       
       const token = await jwt.sign({

@@ -19,7 +19,7 @@ export const ProfileService = {
     return [ErrorCode.SUCCESS, p];
   },
 
-  async updateProfile(data: UpdateProfileDTO): Promise<[ErrorCode, boolean | null]> {
+  async updateProfile(data: UpdateProfileDTO): Promise<[ErrorCode, boolean]> {
     await db
       .insert(profile)
       .values({ id: 1, ...data })

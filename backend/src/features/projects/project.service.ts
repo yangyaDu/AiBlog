@@ -8,7 +8,7 @@ import { ErrorCode } from "../../utils/types";
 import { CreateProjectDTO, ProjectResponse } from "./project.model";
 
 export const ProjectService = {
-  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, ProjectResponse | null]> {
+  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, ProjectResponse]> {
     const offset = (page - 1) * limit;
     
     // SQLite limitation: fetch all then filter
@@ -30,7 +30,7 @@ export const ProjectService = {
     }];
   },
 
-  async create(userId: string, body: CreateProjectDTO): Promise<[ErrorCode, any | null]> {
+  async create(userId: string, body: CreateProjectDTO): Promise<[ErrorCode, any]> {
     let imageUrl = body.imageStr;
     if (body.file instanceof File) {
       imageUrl = await saveFile(body.file);
