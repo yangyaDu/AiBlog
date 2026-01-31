@@ -1,5 +1,6 @@
 
 import { Component, input, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { LanguageService } from '../services/language.service';
 import { GeminiService } from '../services/gemini.service';
 import { marked } from 'marked';
@@ -9,6 +10,7 @@ import pangu from 'pangu';
 @Component({
   selector: 'app-blog-post',
   standalone: true,
+  imports: [DatePipe],
   template: `
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col lg:flex-row gap-12">
       
@@ -57,7 +59,9 @@ import pangu from 'pangu';
       <article class="flex-1 min-w-0 animate-fade-in">
         <header class="mb-10 border-b border-white/10 pb-10">
           <div class="flex items-center gap-4 text-sm text-brand-500 mb-4">
-             <span>{{ post().date }}</span>
+             <span class="text-white bg-white/10 px-2 py-0.5 rounded">{{ post().authorName || 'Anonymous' }}</span>
+             <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
+             <span>{{ post().createdAt | date:'mediumDate' }}</span>
              <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
              <span>{{ post().readTime }}</span>
           </div>

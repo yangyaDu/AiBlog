@@ -1,6 +1,7 @@
+
 import { db } from "../../db";
-import { posts } from "../../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { posts, users } from "../../db/schema";
+import { eq, desc, getTableColumns } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { ErrorCode } from "../../utils/types";
 import { CreatePostDTO, PostResponse } from "./post.model";
@@ -9,8 +10,17 @@ export const PostService = {
   async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, PostResponse]> {
     const offset = (page - 1) * limit;
 
-    const all = await db.select().from(posts).orderBy(desc(posts.timestamp));
+    // Join posts with users to get the author name
+    const all = await db
+      .select({
+        ...getTableColumns(posts),
+        authorName: users.username,
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.createdBy, users.id))
+      .orderBy(desc(posts.createdAt));
     
+    // Process tags
     let filtered = all.map(p => ({
         ...p, 
         tags: p.tags ? JSON.parse(p.tags) as string[] : []
@@ -33,22 +43,36 @@ export const PostService = {
 
   async create(userId: string, body: CreatePostDTO): Promise<[ErrorCode, any]> {
     const tagsList = body.tags.split(",").map((s) => s.trim());
+    
+    // Calculate read time (rough estimate: 200 words per minute)
+    const wordCount = body.content.trim().split(/\s+/).length;
+    const readTime = `${Math.ceil(wordCount / 200)} min read`;
+
     const newPost = {
       id: randomUUID(),
-      authorId: userId,
       title: body.title,
-      date: body.date,
-      timestamp: Date.now(),
-      readTime: "5 min read", 
       excerpt: body.excerpt,
       content: body.content,
+      readTime: readTime,
       tags: JSON.stringify(tagsList),
+      
+      // Audit
+      createdBy: userId,
+      updatedBy: userId,
+      // createdAt & updatedAt handled by DB defaults + Drizzle hooks
     };
 
     await db.insert(posts).values(newPost);
+    
+    // Fetch user to return consistent response immediately
+    const user = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).get();
+
     return [ErrorCode.SUCCESS, {
       ...newPost,
-      tags: tagsList
+      tags: tagsList,
+      authorName: user?.username || 'Unknown',
+      createdAt: new Date(),
+      updatedAt: new Date()
     }];
   },
 
@@ -58,7 +82,8 @@ export const PostService = {
     if (!existing) {
        return [ErrorCode.NOT_FOUND, null];
     }
-    if (existing.authorId !== userId) {
+    // Only creator can delete
+    if (existing.createdBy !== userId) {
        return [ErrorCode.FORBIDDEN, null];
     }
 

@@ -39,17 +39,24 @@ export const projects = sqliteTable("projects", {
 // Blog Posts Table
 export const posts = sqliteTable("posts", {
   id: text("id").primaryKey(),
-  authorId: text("author_id").notNull(),
+  
+  // Content
   title: text("title").notNull(),
-  date: text("date_str").notNull(), // Display string "Oct 24, 2024"
-  timestamp: integer("timestamp").notNull(), // Sorting
-  readTime: text("read_time").notNull(),
   excerpt: text("excerpt").notNull(),
-  content: text("content").notNull(), // Markdown
+  content: text("content").notNull(), // Markdown (Rich Text)
   tags: text("tags"), // JSON stringified array
   coverImage: text("cover_image"),
+  readTime: text("read_time").notNull(),
+
+  // Audit Fields
+  createdBy: text("created_by").notNull(), // User ID
+  updatedBy: text("updated_by"),           // User ID
+  
+  // Timestamps
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
 }, (table) => ({
   // Indexes for query optimization
-  authorIdx: index("posts_author_idx").on(table.authorId),
-  timestampIdx: index("posts_timestamp_idx").on(table.timestamp),
+  creatorIdx: index("posts_creator_idx").on(table.createdBy),
+  createdIdx: index("posts_created_idx").on(table.createdAt),
 }));

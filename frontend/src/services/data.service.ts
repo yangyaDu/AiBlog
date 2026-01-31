@@ -14,15 +14,22 @@ export interface Project {
 
 export interface BlogPost {
   id: string;
-  authorId?: string; // Owner ID
+  
+  // Content
   title: string;
-  date: string; // Display date string
-  timestamp: number; // For sorting
-  readTime: string;
   excerpt: string;
-  content: string; 
+  content: string; // Markdown
+  readTime: string;
   coverImage?: string;
-  tags?: string[]; // Added tags for filtering
+  tags?: string[];
+  
+  // Audit
+  createdBy?: string; 
+  authorName?: string; // Resolved name from backend
+  
+  // Timestamps (Strings from API JSON)
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export interface ProfileData {
@@ -55,34 +62,18 @@ export class DataService {
       tags: ["Angular", "D3.js", "Tailwind"],
       image: "https://picsum.photos/600/400?random=1",
       date: Date.now()
-    },
-    {
-      id: '2',
-      authorId: 'admin',
-      title: "E-Commerce Microservices",
-      description: "Scalable backend architecture using Node.js and gRPC. Features event-driven order processing and inventory management.",
-      tags: ["Node.js", "Microservices", "Docker"],
-      image: "https://picsum.photos/600/400?random=2",
-      date: Date.now() - 10000
-    },
-    {
-      id: '3',
-      authorId: 'admin',
-      title: "AI Code Assistant",
-      description: "VS Code extension that uses generative AI to explain complex regex patterns and generate unit tests automatically.",
-      tags: ["TypeScript", "Gemini API", "VS Code"],
-      image: "https://picsum.photos/600/400?random=3",
-      date: Date.now() - 20000
     }
   ];
 
+  // Default posts with new structure
   private defaultPosts: BlogPost[] = [
     {
       id: '1',
-      authorId: 'admin',
+      createdBy: 'admin',
+      authorName: 'Alex',
       title: "Optimizing Angular Change Detection with Signals",
-      date: "Oct 24, 2024",
-      timestamp: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       readTime: "5 min read",
       excerpt: "Why Zoneless Angular is the future and how to migrate your existing RxJS based state management to fine-grained Signals.",
       tags: ["Angular", "Performance"],
@@ -98,23 +89,6 @@ Zone.js has been the magic behind Angular's change detection for years. However,
 ## The Signal Revolution
 
 Signals provide a reactive primitive that Angular can use to know *exactly* what changed and where.
-      `
-    },
-    {
-      id: '2',
-      authorId: 'admin',
-      title: "Building Resilient APIs with Node.js",
-      date: "Sep 15, 2024",
-      timestamp: Date.now() - 100000,
-      readTime: "8 min read",
-      excerpt: "Strategies for handling backpressure, implementing rate limiting, and ensuring idempotency in distributed systems.",
-      tags: ["Node.js", "Backend"],
-      content: `
-Building APIs that survive production traffic is an art. Let's talk about resilience.
-
-## Rate Limiting
-
-Never let a single user bring down your service. Use Token Bucket or Leaky Bucket algorithms.
       `
     }
   ];

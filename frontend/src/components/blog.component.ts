@@ -1,5 +1,6 @@
 
 import { Component, inject, signal, computed } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { LanguageService } from '../services/language.service';
 import { BlogPostComponent } from './blog-post.component';
 import { DataService, BlogPost } from '../services/data.service';
@@ -8,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-blog',
-  imports: [BlogPostComponent, FormsModule],
+  imports: [BlogPostComponent, FormsModule, DatePipe],
   template: `
     <!-- Blog Form Modal -->
     @if (showForm()) {
@@ -16,19 +17,13 @@ import { FormsModule } from '@angular/forms';
         <div class="glass-panel border border-white/10 p-8 rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
           <h2 class="text-2xl font-semibold text-white mb-6">{{ formMode === 'add' ? 'New Post' : 'Edit Post' }}</h2>
           <div class="space-y-4 flex-1 overflow-y-auto">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
+             <div>
                 <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Title</label>
                 <input [(ngModel)]="currentForm.title" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-brand-500 outline-none">
               </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Date</label>
-                <input [(ngModel)]="currentForm.date" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-brand-500 outline-none">
-              </div>
-            </div>
              <div>
                 <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Tags</label>
-                <input [ngModel]="currentForm.tags ? currentForm.tags!.join(', ') : ''" (ngModelChange)="updateTags($event)" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-brand-500 outline-none">
+                <input [ngModel]="currentForm.tags ? currentForm.tags!.join(', ') : ''" (ngModelChange)="updateTags($event)" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Angular, Tech, Life">
               </div>
             <div>
               <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Excerpt</label>
@@ -36,8 +31,8 @@ import { FormsModule } from '@angular/forms';
             </div>
             
             <div class="flex flex-col h-[400px]">
-              <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Content</label>
-              <textarea [(ngModel)]="currentForm.content" class="flex-1 w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white font-mono text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 outline-none"></textarea>
+              <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Content (Markdown supported: Images, Code, Video)</label>
+              <textarea [(ngModel)]="currentForm.content" class="flex-1 w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white font-mono text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 outline-none" placeholder="# Hello World\n\n![Image](url)\n\n<video src='url'></video>"></textarea>
             </div>
           </div>
           <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-white/10">
@@ -104,7 +99,11 @@ import { FormsModule } from '@angular/forms';
 
               <div (click)="viewPost(post)">
                 <div class="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">
-                  <span class="text-brand-500">{{post.date}}</span>
+                  <!-- Author Name -->
+                   <span class="text-white bg-white/10 px-2 py-0.5 rounded">{{ post.authorName || 'Anonymous' }}</span>
+                   <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+                   <!-- Date -->
+                  <span class="text-brand-500">{{ post.createdAt | date:'mediumDate' }}</span>
                   <span class="w-1 h-1 rounded-full bg-gray-600"></span>
                   <span>{{post.readTime}}</span>
                 </div>
@@ -178,8 +177,12 @@ export class BlogComponent {
     if (this.selectedTag()) {
       posts = posts.filter(p => p.tags?.includes(this.selectedTag()!));
     }
-    // Sort by timestamp desc
-    return posts.sort((a, b) => b.timestamp - a.timestamp);
+    // Sort by timestamp desc (handle Date object or string)
+    return posts.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+    });
   });
 
   displayPosts = computed(() => {
@@ -191,13 +194,23 @@ export class BlogComponent {
   totalPages = computed(() => Math.ceil(this.filteredPosts().length / this.pageSize));
 
   // Form
-  emptyPost: BlogPost = { id: '', title: '', date: new Date().toLocaleDateString(), timestamp: 0, readTime: '5 min read', excerpt: '', content: '', tags: [] };
+  emptyPost: BlogPost = { 
+      id: '', 
+      title: '', 
+      createdAt: new Date().toISOString(), 
+      updatedAt: new Date().toISOString(),
+      readTime: '5 min read', 
+      excerpt: '', 
+      content: '', 
+      tags: [] 
+  };
   currentForm: BlogPost = { ...this.emptyPost };
 
   // --- Auth Checks ---
   isOwner(p: BlogPost): boolean {
     const user = this.authService.currentUser();
-    return !!user && (user.id === p.authorId || p.authorId === 'admin');
+    // Check createdBy first (new logic), fall back to checking if user is admin
+    return !!user && (user.id === p.createdBy || user.username === 'admin');
   }
 
   // --- Actions ---
@@ -223,9 +236,9 @@ export class BlogComponent {
     this.currentForm = { 
         ...this.emptyPost, 
         id: Date.now().toString(), 
-        date: new Date().toLocaleDateString(),
-        timestamp: Date.now(),
-        authorId: user ? user.id : 'anon'
+        createdAt: new Date().toISOString(),
+        createdBy: user ? user.id : 'anon',
+        authorName: user ? user.username : 'Anonymous'
     };
     this.showForm.set(true);
   }
@@ -243,6 +256,11 @@ export class BlogComponent {
   }
 
   savePost() {
+    // Basic word count estimate for read time
+    const words = this.currentForm.content.trim().split(/\s+/).length;
+    this.currentForm.readTime = Math.ceil(words / 200) + ' min read';
+    this.currentForm.updatedAt = new Date().toISOString();
+
     if (this.formMode === 'add') {
       this.dataService.addPost(this.currentForm);
     } else {

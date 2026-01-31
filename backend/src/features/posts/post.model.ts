@@ -1,24 +1,27 @@
+
 import { t, Static } from "elysia";
 
 export const CreatePostSchema = t.Object({
   title: t.String(),
-  date: t.String(),
   excerpt: t.String(),
-  content: t.String(),
+  content: t.String(), // Markdown text containing images/videos syntax
   tags: t.String(),
 });
 
 export const PostItemSchema = t.Object({
   id: t.String(),
-  authorId: t.String(),
   title: t.String(),
-  date: t.String(),
-  timestamp: t.Number(),
-  readTime: t.String(),
   excerpt: t.String(),
   content: t.String(),
+  readTime: t.String(),
   tags: t.Array(t.String()),
   coverImage: t.Union([t.String(), t.Null(), t.Undefined()]),
+  
+  // Audit info
+  createdBy: t.String(),
+  authorName: t.Union([t.String(), t.Null()]), // Resolved from users table
+  createdAt: t.Any(), // Date object or ISO string
+  updatedAt: t.Any(), // Date object or ISO string
 });
 
 export const PostListResponseSchema = t.Object({
