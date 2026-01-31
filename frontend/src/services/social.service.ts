@@ -15,11 +15,13 @@ export class SocialService {
   }
 
   async unfollow(targetId: string) {
-    return this.api.delete(`/api/follows/${targetId}`);
+    // DELETE /api/follows?targetId=...
+    return this.api.delete(`/api/follows?targetId=${targetId}`);
   }
 
   async checkFollowStatus(targetId: string) {
-    return this.api.get<{ isFollowing: boolean }>(`/api/follows/check/${targetId}`);
+    // GET /api/follows/check?targetId=...
+    return this.api.get<{ isFollowing: boolean }>(`/api/follows/check?targetId=${targetId}`);
   }
 
   // --- Notifications ---
@@ -40,7 +42,8 @@ export class SocialService {
   }
 
   async deleteComment(commentId: string) {
-      return this.api.delete(`/api/comments/${commentId}`);
+      // DELETE /api/comments?id=...
+      return this.api.delete(`/api/comments?id=${commentId}`);
   }
 
   async getMyComments(page: number = 1) {

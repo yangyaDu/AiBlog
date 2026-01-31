@@ -6,7 +6,8 @@ import { ErrorCode, ServiceContext, OptionalServiceContext } from "../../utils/t
 import { EventBus } from "../../utils/event-bus";
 
 export const FollowService = {
-  async follow(ctx: ServiceContext, targetId: string): Promise<[ErrorCode, any]> {
+  async follow(ctx: ServiceContext, options: { targetId: string }): Promise<[ErrorCode, any]> {
+    const { targetId } = options;
     if (ctx.session.id === targetId) return [ErrorCode.VALIDATION_ERROR, "Cannot follow self"];
     
     // Check exist
@@ -22,12 +23,14 @@ export const FollowService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async unfollow(ctx: ServiceContext, targetId: string): Promise<[ErrorCode, any]> {
+  async unfollow(ctx: ServiceContext, options: { targetId: string }): Promise<[ErrorCode, any]> {
+    const { targetId } = options;
     await db.delete(follows).where(and(eq(follows.followerId, ctx.session.id), eq(follows.followingId, targetId)));
     return [ErrorCode.SUCCESS, null];
   },
 
-  async check(ctx: ServiceContext, targetId: string): Promise<boolean> {
+  async check(ctx: ServiceContext, options: { targetId: string }): Promise<boolean> {
+      const { targetId } = options;
       const rel = await db.select().from(follows)
         .where(and(eq(follows.followerId, ctx.session.id), eq(follows.followingId, targetId)))
         .get();

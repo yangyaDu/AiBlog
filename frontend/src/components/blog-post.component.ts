@@ -271,12 +271,8 @@ export class BlogPostComponent implements OnInit, AfterViewInit, OnDestroy {
   async loadInteractions() {
      try {
         const token = localStorage.getItem('devfolio_session') ? JSON.parse(localStorage.getItem('devfolio_session')!).token : '';
-        // Manually using fetch here because SocialService uses ApiService which might throw error on success status check? 
-        // No, ApiService returns data directly.
-        // Let's use fetch manually for custom interaction endpoint or update DataService
-        
-        // Use raw fetch for now as this endpoint isn't fully in SocialService yet or requires special handling
-        const res = await fetch(`/api/posts/${this.post().id}/interactions`, {
+        // Updated Endpoint with Query Params
+        const res = await fetch(`/api/posts/interactions?postId=${this.post().id}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

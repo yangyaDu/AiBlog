@@ -163,7 +163,10 @@ Signals provide a reactive primitive that Angular can use to know *exactly* what
   }
 
   deleteProject(id: string) {
-    this.projects.update(p => p.filter(x => x.id !== id));
+    // API Call: DELETE /api/projects?id=...
+    this.api.delete(`/api/projects?id=${id}`).then(() => {
+        this.projects.update(p => p.filter(x => x.id !== id));
+    }).catch(e => console.error("Failed to delete project", e));
   }
 
   // --- Blog Actions ---
@@ -176,7 +179,10 @@ Signals provide a reactive primitive that Angular can use to know *exactly* what
   }
 
   deletePost(id: string) {
-    this.posts.update(p => p.filter(x => x.id !== id));
+    // API Call: DELETE /api/posts?id=...
+    this.api.delete(`/api/posts?id=${id}`).then(() => {
+        this.posts.update(p => p.filter(x => x.id !== id));
+    }).catch(e => console.error("Failed to delete post", e));
   }
 
   // --- Helper: File to Base64 ---

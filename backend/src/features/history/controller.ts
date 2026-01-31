@@ -11,7 +11,7 @@ export const HistoryController = new Elysia({ prefix: "/api/history" })
   .post("/", async ({ body, sessionInfo }) => {
      if (!sessionInfo) return Result.success(null); // Silent success for anon
      
-     const [err] = await HistoryService.recordView({ session: sessionInfo }, body.postId);
+     const [err] = await HistoryService.recordView({ session: sessionInfo }, { postId: body.postId });
      if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to record history");
 
      return Result.success(null);
@@ -27,7 +27,7 @@ export const HistoryController = new Elysia({ prefix: "/api/history" })
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 10;
       
-      const [err, data] = await HistoryService.getMyHistory({ session: sessionInfo }, page, limit);
+      const [err, data] = await HistoryService.getMyHistory({ session: sessionInfo }, { page, limit });
       if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch history");
 
       return Result.success(data);

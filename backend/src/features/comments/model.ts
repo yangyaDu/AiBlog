@@ -3,7 +3,8 @@ import { t } from "elysia";
 
 export const AddCommentSchema = t.Object({
   content: t.String(),
-  parentId: t.Optional(t.String()) 
+  parentId: t.Optional(t.String()),
+  postId: t.String()
 });
 
 export const CommentItemSchema = t.Object({
@@ -14,4 +15,8 @@ export const CommentItemSchema = t.Object({
   username: t.String(), 
   content: t.String(),
   createdAt: t.Any(),
+});
+
+export const DeleteCommentQuerySchema = t.Object({
+  id: t.String()
 });

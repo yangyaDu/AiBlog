@@ -46,6 +46,14 @@ export const InteractionsResponseSchema = t.Object({
     }))
 });
 
+export const DeletePostQuerySchema = t.Object({
+  id: t.String()
+});
+
+export const GetInteractionsQuerySchema = t.Object({
+  postId: t.String()
+});
+
 export type CreatePostDTO = Static<typeof CreatePostSchema>;
 
 export interface PostResponse {

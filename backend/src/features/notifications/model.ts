@@ -12,3 +12,7 @@ export const NotificationItemSchema = t.Object({
 });
 
 export const NotificationListSchema = t.Array(NotificationItemSchema);
+
+export const MarkReadBodySchema = t.Object({
+    id: t.String()
+});

@@ -7,7 +7,8 @@ import { ErrorCode, ServiceContext } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
 export const LikeService = {
-  async toggle(ctx: ServiceContext, postId: string): Promise<[ErrorCode, { status: 'liked' | 'unliked' }]> {
+  async toggle(ctx: ServiceContext, options: { postId: string }): Promise<[ErrorCode, { status: 'liked' | 'unliked' }]> {
+    const { postId } = options;
     const userId = ctx.session.id;
     const existing = await db.select().from(postLikes)
         .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId))).get();

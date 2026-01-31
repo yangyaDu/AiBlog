@@ -7,8 +7,15 @@ import { saveFile } from "../../utils/file";
 import { ErrorCode, ServiceContext } from "../../utils/types";
 import { CreateProjectDTO, ProjectResponse } from "./project.model";
 
+export interface GetProjectsOptions {
+  page: number;
+  limit: number;
+  tag?: string;
+}
+
 export const ProjectService = {
-  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, ProjectResponse]> {
+  async getAll(options: GetProjectsOptions): Promise<[ErrorCode, ProjectResponse]> {
+    const { page, limit, tag } = options;
     const offset = (page - 1) * limit;
     
     // SQLite limitation: fetch all then filter
@@ -31,6 +38,7 @@ export const ProjectService = {
   },
 
   async create(ctx: ServiceContext, body: CreateProjectDTO): Promise<[ErrorCode, any]> {
+    // Note: 'body' is already a DTO object, acting as options
     let imageUrl = body.imageStr;
     if (body.file instanceof File) {
       imageUrl = await saveFile(body.file);
@@ -57,8 +65,8 @@ export const ProjectService = {
     }];
   },
 
-  async delete(ctx: ServiceContext, projectId: string): Promise<[ErrorCode, boolean | null]> {
-    const existing = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+  async delete(ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, boolean | null]> {
+    const existing = await db.select().from(projects).where(eq(projects.id, options.id)).get();
     
     if (!existing) {
        return [ErrorCode.NOT_FOUND, null];
@@ -67,7 +75,7 @@ export const ProjectService = {
        return [ErrorCode.FORBIDDEN, null];
     }
 
-    await db.delete(projects).where(eq(projects.id, projectId));
+    await db.delete(projects).where(eq(projects.id, options.id));
     return [ErrorCode.SUCCESS, true];
   }
 };

@@ -13,13 +13,23 @@ EventBus.on('comment.created', async (payload) => {
         // Reply: Notify Parent Comment Author
         const parent = await db.select().from(postComments).where(eq(postComments.id, parentId)).get();
         if (parent) {
-            await NotificationService.create(parent.userId, userId, 'comment_reply', postId);
+            await NotificationService.create({
+                recipientId: parent.userId, 
+                senderId: userId, 
+                type: 'comment_reply', 
+                referenceId: postId
+            });
         }
     } else {
         // Root Comment: Notify Post Author
         const post = await db.select().from(posts).where(eq(posts.id, postId)).get();
         if (post) {
-            await NotificationService.create(post.createdBy, userId, 'post_comment', postId);
+            await NotificationService.create({
+                recipientId: post.createdBy, 
+                senderId: userId, 
+                type: 'post_comment', 
+                referenceId: postId
+            });
         }
     }
 });
@@ -29,14 +39,24 @@ EventBus.on('post.liked', async (payload) => {
     const { postId, userId } = payload;
     const post = await db.select().from(posts).where(eq(posts.id, postId)).get();
     if (post) {
-        await NotificationService.create(post.createdBy, userId, 'post_like', postId);
+        await NotificationService.create({
+            recipientId: post.createdBy, 
+            senderId: userId, 
+            type: 'post_like', 
+            referenceId: postId
+        });
     }
 });
 
 // 3. Follow Notification
 EventBus.on('user.followed', async (payload) => {
     const { followerId, targetId } = payload;
-    await NotificationService.create(targetId, followerId, 'follow', followerId);
+    await NotificationService.create({
+        recipientId: targetId, 
+        senderId: followerId, 
+        type: 'follow', 
+        referenceId: followerId
+    });
 });
 
 // 4. New Post Notification (Push to Followers)
@@ -48,7 +68,12 @@ EventBus.on('post.created', async (payload) => {
     
     // Fan-out write (Batch insert ideally, simple loop here)
     for (const f of myFollowers) {
-        await NotificationService.create(f.followerId, authorId, 'post_new', postId);
+        await NotificationService.create({
+            recipientId: f.followerId, 
+            senderId: authorId, 
+            type: 'post_new', 
+            referenceId: postId
+        });
     }
 });
 

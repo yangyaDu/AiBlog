@@ -7,8 +7,15 @@ import { ErrorCode, ServiceContext, OptionalServiceContext } from "../../utils/t
 import { CreatePostDTO, PostResponse } from "./post.model";
 import { EventBus } from "../../utils/event-bus";
 
+export interface GetPostsOptions {
+  page: number;
+  limit: number;
+  tag?: string;
+}
+
 export const PostService = {
-  async getAll(page: number, limit: number, tag?: string): Promise<[ErrorCode, PostResponse]> {
+  async getAll(options: GetPostsOptions): Promise<[ErrorCode, PostResponse]> {
+    const { page, limit, tag } = options;
     const offset = (page - 1) * limit;
 
     const all = await db
@@ -42,6 +49,7 @@ export const PostService = {
   },
 
   async create(ctx: ServiceContext, body: CreatePostDTO): Promise<[ErrorCode, any]> {
+    // Body is DTO
     const tagsList = body.tags.split(",").map((s) => s.trim());
     
     const wordCount = body.content.trim().split(/\s+/).length;
@@ -78,8 +86,8 @@ export const PostService = {
     }];
   },
 
-  async delete(ctx: ServiceContext, postId: string): Promise<[ErrorCode, boolean | null]> {
-    const existing = await db.select().from(posts).where(eq(posts.id, postId)).get();
+  async delete(ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, boolean | null]> {
+    const existing = await db.select().from(posts).where(eq(posts.id, options.id)).get();
     
     if (!existing) {
        return [ErrorCode.NOT_FOUND, null];
@@ -88,11 +96,12 @@ export const PostService = {
        return [ErrorCode.FORBIDDEN, null];
     }
 
-    await db.delete(posts).where(eq(posts.id, postId));
+    await db.delete(posts).where(eq(posts.id, options.id));
     return [ErrorCode.SUCCESS, true];
   },
 
-  async getInteractions(ctx: OptionalServiceContext, postId: string): Promise<[ErrorCode, any]> {
+  async getInteractions(ctx: OptionalServiceContext, options: { postId: string }): Promise<[ErrorCode, any]> {
+    const { postId } = options;
     // 1. Get Likes
     const likesCount = (await db.select().from(postLikes).where(and(eq(postLikes.postId, postId), isNull(postLikes.deletedAt))).all()).length;
     let userLiked = false;

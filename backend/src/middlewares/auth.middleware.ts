@@ -18,7 +18,7 @@ export const authMiddleware = new Elysia()
       }),
     })
   )
-  .derive(async ({ jwt, request, headers }) => {
+  .derive({ as: 'global' }, async ({ jwt, request, headers }) => {
     const path = new URL(request.url).pathname;
     const config = getRouteConfig(path, request.method);
 

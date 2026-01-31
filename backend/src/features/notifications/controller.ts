@@ -1,7 +1,7 @@
 
 import { Elysia, t } from "elysia";
 import { NotificationService } from "./service";
-import { NotificationListSchema } from "./model";
+import { NotificationListSchema, MarkReadBodySchema } from "./model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { BizError, ErrorCode } from "../../utils/types";
@@ -21,11 +21,12 @@ export const NotificationController = new Elysia({ prefix: "/api/notifications" 
   }, {
       response: { 200: createResponseSchema(NotificationListSchema) }
   })
-  .post("/:id/read", async ({ params, sessionInfo }) => {
+  .post("/read", async ({ body, sessionInfo }) => {
     if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
     
-    await NotificationService.markAsRead({ session: sessionInfo }, params.id);
+    await NotificationService.markAsRead({ session: sessionInfo }, { id: body.id });
     return Result.success(null);
   }, {
+    body: MarkReadBodySchema,
     response: { 200: createResponseSchema(t.Null()) }
   });

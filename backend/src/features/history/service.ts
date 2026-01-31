@@ -5,8 +5,14 @@ import { eq, desc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { ErrorCode, ServiceContext } from "../../utils/types";
 
+export interface GetHistoryOptions {
+  page: number;
+  limit: number;
+}
+
 export const HistoryService = {
-  async recordView(ctx: ServiceContext, postId: string): Promise<[ErrorCode, null]> {
+  async recordView(ctx: ServiceContext, options: { postId: string }): Promise<[ErrorCode, null]> {
+    const { postId } = options;
     const userId = ctx.session.id;
     // Upsert logic: Update time if exists, else insert
     const existing = await db.select().from(postViews)
@@ -27,7 +33,8 @@ export const HistoryService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async getMyHistory(ctx: ServiceContext, page: number = 1, limit: number = 10): Promise<[ErrorCode, any]> {
+  async getMyHistory(ctx: ServiceContext, options: GetHistoryOptions): Promise<[ErrorCode, any]> {
+    const { page, limit } = options;
     const offset = (page - 1) * limit;
     
     const history = await db.select({

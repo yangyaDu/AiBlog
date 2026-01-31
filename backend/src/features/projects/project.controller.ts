@@ -1,7 +1,7 @@
 
 import { Elysia, t } from "elysia";
 import { ProjectService } from "./project.service";
-import { CreateProjectSchema, ProjectListResponseSchema, ProjectItemSchema } from "./project.model";
+import { CreateProjectSchema, ProjectListResponseSchema, ProjectItemSchema, DeleteProjectQuerySchema } from "./project.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { BizError, ErrorCode } from "../../utils/types";
@@ -11,7 +11,7 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
   .get("/", async ({ query }) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 6;
-    const [err, data] = await ProjectService.getAll(page, limit, query.tag);
+    const [err, data] = await ProjectService.getAll({ page, limit, tag: query.tag });
     
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch projects");
 
@@ -36,10 +36,10 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
       200: createResponseSchema(ProjectItemSchema)
     }
   })
-  .delete("/:id", async ({ params, sessionInfo }) => {
+  .delete("/", async ({ query, sessionInfo }) => {
     if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    const [err] = await ProjectService.delete({ session: sessionInfo }, params.id);
+    const [err] = await ProjectService.delete({ session: sessionInfo }, { id: query.id });
     
     if (err !== ErrorCode.SUCCESS) {
         if (err === ErrorCode.NOT_FOUND) throw new BizError(err, "Project not found", 404);
@@ -49,6 +49,7 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
 
     return Result.success(null, "Project deleted");
   }, {
+    query: DeleteProjectQuerySchema,
     response: {
       200: createResponseSchema(t.Null())
     }

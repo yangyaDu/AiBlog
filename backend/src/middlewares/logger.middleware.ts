@@ -2,12 +2,12 @@
 import { Elysia } from "elysia";
 
 export const loggerMiddleware = new Elysia()
-  .derive(() => {
+  .derive({ as: 'global' }, () => {
     return {
       startTime: Date.now()
     }
   })
-  .onAfterHandle(({ request, startTime, path }) => {
+  .onAfterHandle({ as: 'global' }, ({ request, startTime, path }) => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     

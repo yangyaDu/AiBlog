@@ -6,8 +6,21 @@ import { randomUUID } from "crypto";
 import { ErrorCode, ServiceContext } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
+export interface CreateCommentOptions {
+  postId: string;
+  content: string;
+  parentId?: string;
+}
+
+export interface GetCommentsOptions {
+  page: number;
+  limit: number;
+}
+
 export const CommentService = {
-  async create(ctx: ServiceContext, postId: string, content: string, parentId?: string): Promise<[ErrorCode, any]> {
+  async create(ctx: ServiceContext, options: CreateCommentOptions): Promise<[ErrorCode, any]> {
+    const { postId, content, parentId } = options;
+    
     const newComment = {
         id: randomUUID(),
         postId,
@@ -33,16 +46,17 @@ export const CommentService = {
     }];
   },
 
-  async delete(ctx: ServiceContext, commentId: string): Promise<[ErrorCode, any]> {
-    const comment = await db.select().from(postComments).where(eq(postComments.id, commentId)).get();
+  async delete(ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, any]> {
+    const comment = await db.select().from(postComments).where(eq(postComments.id, options.id)).get();
     if (!comment) return [ErrorCode.NOT_FOUND, null];
     if (comment.userId !== ctx.session.id) return [ErrorCode.FORBIDDEN, null];
 
-    await db.update(postComments).set({ deletedAt: new Date() }).where(eq(postComments.id, commentId));
+    await db.update(postComments).set({ deletedAt: new Date() }).where(eq(postComments.id, options.id));
     return [ErrorCode.SUCCESS, null];
   },
 
-  async getMine(ctx: ServiceContext, page: number, limit: number): Promise<[ErrorCode, any]> {
+  async getMine(ctx: ServiceContext, options: GetCommentsOptions): Promise<[ErrorCode, any]> {
+      const { page, limit } = options;
       const offset = (page - 1) * limit;
       const data = await db.select().from(postComments)
         .where(and(eq(postComments.userId, ctx.session.id), isNull(postComments.deletedAt)))

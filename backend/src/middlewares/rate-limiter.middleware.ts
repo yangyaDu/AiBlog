@@ -9,7 +9,7 @@ const limitStore = new Map<string, { count: number; expiresAt: number }>();
 const WINDOW_MS = 60 * 1000; // 1 Minute window
 
 export const rateLimiterMiddleware = new Elysia()
-  .onBeforeHandle(({ request, set, server }) => {
+  .onBeforeHandle({ as: 'global' }, ({ request, set, server }) => {
     const ip = server?.requestIP(request)?.address || 'unknown';
     const path = new URL(request.url).pathname;
     const config = getRouteConfig(path, request.method);

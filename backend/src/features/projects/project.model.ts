@@ -1,3 +1,4 @@
+
 import { t, Static } from "elysia";
 
 export const CreateProjectSchema = t.Object({
@@ -24,6 +25,10 @@ export const ProjectListResponseSchema = t.Object({
   total: t.Number(),
   page: t.Number(),
   totalPages: t.Number()
+});
+
+export const DeleteProjectQuerySchema = t.Object({
+  id: t.String()
 });
 
 export type CreateProjectDTO = Static<typeof CreateProjectSchema>;

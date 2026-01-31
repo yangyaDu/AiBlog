@@ -5,9 +5,17 @@ import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { ErrorCode, ServiceContext } from "../../utils/types";
 
+export interface CreateNotificationOptions {
+  recipientId: string;
+  senderId: string;
+  type: string;
+  referenceId: string;
+}
+
 export const NotificationService = {
   // Internal method called by Event Bus listeners
-  async create(recipientId: string, senderId: string, type: string, referenceId: string) {
+  async create(options: CreateNotificationOptions) {
+    const { recipientId, senderId, type, referenceId } = options;
     if (recipientId === senderId) return; // Don't notify self
 
     await db.insert(notifications).values({
@@ -38,11 +46,11 @@ export const NotificationService = {
     return [ErrorCode.SUCCESS, list];
   },
 
-  async markAsRead(ctx: ServiceContext, notificationId: string): Promise<[ErrorCode, any]> {
+  async markAsRead(ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, any]> {
     // Note: In strict implementation we should check if notif belongs to user
     await db.update(notifications)
       .set({ isRead: true })
-      .where(eq(notifications.id, notificationId)); 
+      .where(eq(notifications.id, options.id)); 
     return [ErrorCode.SUCCESS, null];
   }
 };
