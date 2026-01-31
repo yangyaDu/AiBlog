@@ -24,8 +24,22 @@ import { LikeController } from "./features/likes/controller";
 import { CommentController } from "./features/comments/controller";
 import { HistoryController } from "./features/history/controller";
 
-import { BizError, ErrorCode } from "./utils/types";
+import { BizError, ErrorCode, getErrorInfo } from "./utils/types";
 import { Result } from "./utils/response";
+
+
+const modules = [
+  AuthController,
+  ProfileController,
+  ProjectController,
+  PostController,
+  MediaController,
+  FollowController,
+  NotificationController,
+  LikeController,
+  CommentController,
+  HistoryController,
+];
 
 declare const Bun: any;
 
@@ -42,36 +56,32 @@ const app = new Elysia()
 
   .onError(({ code, error, set }) => {
     console.error(`[Error] ${code}:`, error);
+    
+    // 统一处理：根据错误类型获取错误码和消息
+    let errorCode = ErrorCode.UNKNOWN_ERROR;
+    let errorMessage = "Internal Server Error";
+    let status = 500;
+    
     if (error instanceof BizError) {
-      set.status = error.status;
-      return Result.error(error.code, error.message);
+      errorCode = error.code;
+      errorMessage = error.message;
+      status = error.status;
+    } else if (code === 'VALIDATION') {
+      errorCode = ErrorCode.VALIDATION_ERROR;
+      errorMessage = "Validation Failed";
+      status = 400;
+    } else if (code === 'NOT_FOUND') {
+      errorCode = ErrorCode.NOT_FOUND;
+      errorMessage = "Resource not found";
+      status = 404;
     }
-    if (code === 'VALIDATION') {
-      set.status = 400;
-      return Result.error(ErrorCode.VALIDATION_ERROR, "Validation Failed", JSON.parse(error.message));
-    }
-    if (code === 'NOT_FOUND') {
-      set.status = 404;
-      return Result.error(ErrorCode.NOT_FOUND, "Resource not found");
-    }
-    set.status = 500;
-    return Result.error(ErrorCode.UNKNOWN_ERROR, "Internal Server Error");
+    
+    set.status = status;
+    return Result.error(errorCode, errorMessage, null);
   })
 
   // Feature Modules
-  .use(AuthController)
-  .use(ProfileController)
-  .use(ProjectController)
-  .use(PostController)
-  .use(MediaController)
-  
-  // MVC Refactored Modules
-  .use(FollowController)
-  .use(NotificationController)
-  .use(LikeController)
-  .use(CommentController)
-  .use(HistoryController)
-  
+  .use(modules)
   .listen(API_PORT);
 
 console.log(

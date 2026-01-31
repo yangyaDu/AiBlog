@@ -3,14 +3,18 @@ import { ProfileService } from "./profile.service";
 import { UpdateProfileSchema, UpdateProfileDTO, ProfileResponseSchema } from "./profile.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode } from "../../utils/types";
+import { ErrorCode, getErrorInfo } from "../../utils/types";
 
 export const ProfileController = new Elysia({ prefix: "/api/profile" })
   .use(authMiddleware)
-  .get("/", async () => {
+  .get("/", async ({ set }) => {
     const [err, data] = await ProfileService.getProfile();
     // Assuming getProfile implies success in current logic, but handling for consistency
-    if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch profile");
+    if (err !== ErrorCode.SUCCESS) {
+      const errorInfo = getErrorInfo(err);
+      set.status = errorInfo.status;
+      return Result.error(err, errorInfo.message, null);
+    }
     
     return Result.success(data);
   }, {
@@ -20,11 +24,19 @@ export const ProfileController = new Elysia({ prefix: "/api/profile" })
   })
   .put(
     "/",
-    async ({ body, user }: any) => {
-      if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+    async ({ body, user, set }: any) => {
+      if (!user) {
+        const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+        set.status = errorInfo.status;
+        return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+      }
       
       const [err] = await ProfileService.updateProfile(body);
-      if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to update profile");
+      if (err !== ErrorCode.SUCCESS) {
+        const errorInfo = getErrorInfo(err);
+        set.status = errorInfo.status;
+        return Result.error(err, errorInfo.message, null);
+      }
 
       return Result.success(null, "Profile updated");
     },

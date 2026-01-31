@@ -5,7 +5,7 @@ import { CreatePostSchema, CreatePostDTO, PostListResponseSchema, PostItemSchema
 import { AddCommentSchema, InteractionsResponseSchema } from "./comments.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode } from "../../utils/types";
+import { ErrorCode, getErrorInfo } from "../../utils/types";
 import { db } from "../../db";
 import { postLikes, postComments, users } from "../../db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
@@ -15,27 +15,47 @@ export const PostController = new Elysia({ prefix: "/api/posts" })
   .use(authMiddleware)
   
   // --- Standard CRUD ---
-  .get("/", async ({ query }) => {
+  .get("/", async ({ query, set }) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 5;
     const [err, data] = await PostService.getAll(page, limit, query.tag);
-    if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch articles");
+    if (err !== ErrorCode.SUCCESS) {
+      const errorInfo = getErrorInfo(err);
+      set.status = errorInfo.status;
+      return Result.error(err, errorInfo.message, null);
+    }
     return Result.success(data);
   }, { response: { 200: createResponseSchema(PostListResponseSchema) } })
 
-  .post("/", async ({ body, user }: any) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .post("/", async ({ body, user, set }: any) => {
+    if (!user) {
+      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+    }
     // @ts-ignore
     const [err, newPost] = await PostService.create(user.id, body);
-    if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to create article");
+    if (err !== ErrorCode.SUCCESS) {
+      const errorInfo = getErrorInfo(err);
+      set.status = errorInfo.status;
+      return Result.error(err, errorInfo.message, null);
+    }
     return Result.success(newPost, "Article created");
   }, { body: CreatePostSchema, response: { 200: createResponseSchema(PostItemSchema) } })
 
-  .delete("/:id", async ({ params, user }: any) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .delete("/:id", async ({ params, user, set }: any) => {
+    if (!user) {
+      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+    }
     // @ts-ignore
     const [err] = await PostService.delete(user.id, params.id);
-    if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to delete article");
+    if (err !== ErrorCode.SUCCESS) {
+      const errorInfo = getErrorInfo(err);
+      set.status = errorInfo.status;
+      return Result.error(err, errorInfo.message, null);
+    }
     return Result.success(null, "Article deleted");
   }, { response: { 200: createResponseSchema(t.Null()) } })
 
@@ -73,8 +93,12 @@ export const PostController = new Elysia({ prefix: "/api/posts" })
 
 
   // --- Interactions: Toggle Like ---
-  .post("/:id/like", async ({ params, user }: any) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
+  .post("/:id/like", async ({ params, user, set }: any) => {
+    if (!user) {
+      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+    }
     const postId = params.id;
     const userId = user.id;
 
@@ -99,8 +123,12 @@ export const PostController = new Elysia({ prefix: "/api/posts" })
 
 
   // --- Interactions: Add Comment ---
-  .post("/:id/comments", async ({ params, body, user }: any) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
+  .post("/:id/comments", async ({ params, body, user, set }: any) => {
+    if (!user) {
+      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+    }
     
     const newComment = {
         id: randomUUID(),
@@ -116,13 +144,25 @@ export const PostController = new Elysia({ prefix: "/api/posts" })
 
 
   // --- Interactions: Delete Comment ---
-  .delete("/comments/:id", async ({ params, user }: any) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Login required", 401);
+  .delete("/comments/:id", async ({ params, user, set }: any) => {
+    if (!user) {
+      const errorInfo = getErrorInfo(ErrorCode.UNAUTHORIZED);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.UNAUTHORIZED, errorInfo.message, null);
+    }
     
     const comment = await db.select().from(postComments).where(eq(postComments.id, params.id)).get();
-    if (!comment) throw new BizError(ErrorCode.NOT_FOUND, "Comment not found", 404);
+    if (!comment) {
+      const errorInfo = getErrorInfo(ErrorCode.NOT_FOUND);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.NOT_FOUND, errorInfo.message, null);
+    }
     
-    if (comment.userId !== user.id) throw new BizError(ErrorCode.FORBIDDEN, "Can only delete own comments", 403);
+    if (comment.userId !== user.id) {
+      const errorInfo = getErrorInfo(ErrorCode.FORBIDDEN);
+      set.status = errorInfo.status;
+      return Result.error(ErrorCode.FORBIDDEN, errorInfo.message, null);
+    }
 
     await db.update(postComments).set({ deletedAt: new Date() }).where(eq(postComments.id, params.id));
     return Result.success(null, "Comment deleted");

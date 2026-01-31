@@ -39,4 +39,5 @@ export const authMiddleware = new Elysia()
     }
 
     return { user: payload };
-  });
+  })
+  .as("scoped");
