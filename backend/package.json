@@ -1,0 +1,21 @@
+
+{
+  "name": "devfolio-api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "elysia": "latest",
+    "@elysiajs/cors": "latest",
+    "@elysiajs/jwt": "latest",
+    "@elysiajs/static": "latest",
+    "@elysiajs/swagger": "latest",
+    "drizzle-orm": "latest",
+    "drizzle-kit": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
