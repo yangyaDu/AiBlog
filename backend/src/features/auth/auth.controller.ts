@@ -1,3 +1,4 @@
+
 import { Elysia } from "elysia";
 import { AuthService } from "./auth.service";
 import { RegisterSchema, LoginSchema, RegisterDTO, LoginDTO, AuthResponseSchema } from "./auth.model";
@@ -13,6 +14,10 @@ export const AuthController = new Elysia({ prefix: "/api/auth" })
       const [err, userId] = await AuthService.register(body as RegisterDTO);
       
       if (err !== ErrorCode.SUCCESS) {
+        if (err === ErrorCode.USER_EXISTS) {
+             // Code 1001
+             throw new BizError(ErrorCode.USER_EXISTS, "User already exists", 409);
+        }
         throw new BizError(err, "Registration failed");
       }
 
@@ -31,7 +36,8 @@ export const AuthController = new Elysia({ prefix: "/api/auth" })
       const [err, user] = await AuthService.login(body as LoginDTO);
       
       if (err !== ErrorCode.SUCCESS || !user) {
-        throw new BizError(err, "Login failed");
+        // Code 1002
+        throw new BizError(ErrorCode.INVALID_CREDENTIALS, "Invalid username or password", 401);
       }
       
       const token = await jwt.sign({

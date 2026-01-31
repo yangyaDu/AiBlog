@@ -2,42 +2,26 @@
 import { db } from "../../db";
 import { users } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import { ErrorCode } from "../../utils/types";
 import { RegisterDTO, LoginDTO, AuthResponse } from "./auth.model";
 
-declare const Bun: any;
-
 export const AuthService = {
-  // Simulating Cap.js validation since we can't install backend libs.
-  // Frontend sends 'expectedCaptcha' (which is the answer base64 encoded or hashed)
-  // Backend verifies input matches.
-  validateCaptcha(input: string, expected: string): boolean {
-    if (!input || !expected) return false;
-    // In a real app, 'expected' is a session ID stored in Redis/DB.
-    // Here, we trust the frontend sent a hash of the answer. 
-    // To be safe in this demo: Input must match the decoded 'expected'.
-    try {
-        const decoded = atob(expected);
-        return input.toLowerCase() === decoded.toLowerCase();
-    } catch {
-        return false;
-    }
+  // Helper to hash password with MD5 (Legacy requirement)
+  // WARNING: MD5 is not secure for production passwords.
+  hashPassword(pwd: string): string {
+    return createHash('md5').update(pwd).digest('hex');
   },
 
   async register(data: RegisterDTO): Promise<[ErrorCode, string | null]> {
-    // 1. Verify Captcha
-    if (!this.validateCaptcha(data.captchaCode, data.expectedCaptcha)) {
-        return [ErrorCode.VALIDATION_ERROR, "Invalid Captcha"];
-    }
-
-    // 2. Check User Existence
+    // 1. Check User Existence
     const existing = await db.select().from(users).where(eq(users.username, data.username)).get();
     if (existing) {
-      return [ErrorCode.USER_EXISTS, "Username already exists"];
+      return [ErrorCode.USER_EXISTS, "User with this email already exists"];
     }
 
-    const hashedPassword = await Bun.password.hash(data.password);
+    // 2. Hash Password (MD5)
+    const hashedPassword = this.hashPassword(data.password);
     const userId = randomUUID();
 
     await db.insert(users).values({
@@ -50,14 +34,10 @@ export const AuthService = {
   },
 
   async login(data: LoginDTO): Promise<[ErrorCode, Exclude<AuthResponse['user'], undefined> | null]> {
-    // 1. Verify Captcha
-    if (!this.validateCaptcha(data.captchaCode, data.expectedCaptcha)) {
-        return [ErrorCode.VALIDATION_ERROR, null];
-    }
-
     const user = await db.select().from(users).where(eq(users.username, data.username)).get();
 
-    if (!user || !(await Bun.password.verify(data.password, user.passwordHash))) {
+    // Verify using MD5
+    if (!user || user.passwordHash !== this.hashPassword(data.password)) {
       return [ErrorCode.INVALID_CREDENTIALS, null];
     }
 

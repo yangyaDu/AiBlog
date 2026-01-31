@@ -1,59 +1,43 @@
 
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, inject, effect } from '@angular/core';
+import { ApiService } from './api.service';
 
 export interface User {
   id: string;
   username: string;
-  password: string; // In a real app, never store plain text passwords!
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private api = inject(ApiService);
+  
   currentUser = signal<User | null>(null);
-  users = signal<User[]>([]);
 
   constructor() {
-    // Load users and session
-    const storedUsers = localStorage.getItem('devfolio_users');
-    if (storedUsers) {
-      this.users.set(JSON.parse(storedUsers));
-    }
-
+    // Load session on startup
     const session = localStorage.getItem('devfolio_session');
     if (session) {
       this.currentUser.set(JSON.parse(session));
     }
-
-    // Persist users
-    effect(() => {
-      localStorage.setItem('devfolio_users', JSON.stringify(this.users()));
-    });
   }
 
-  register(username: string, password: string): boolean {
-    if (this.users().find(u => u.username === username)) {
-      return false; // User exists
-    }
-    const newUser: User = {
-      id: Date.now().toString(),
-      username,
-      password
-    };
-    this.users.update(u => [...u, newUser]);
-    this.login(username, password);
-    return true;
+  async register(username: string, password: string): Promise<void> {
+    // ApiService throws Error if failed, Component will catch it
+    const res = await this.api.post<{ userId: string }>('/api/auth/register', { username, password });
+    
+    // Auto login after register
+    await this.login(username, password);
   }
 
-  login(username: string, password: string): boolean {
-    const user = this.users().find(u => u.username === username && u.password === password);
-    if (user) {
-      this.currentUser.set(user);
-      localStorage.setItem('devfolio_session', JSON.stringify(user));
-      return true;
-    }
-    return false;
+  async login(username: string, password: string): Promise<void> {
+    const res = await this.api.post<{ token: string, user: User }>('/api/auth/login', { username, password });
+    
+    // Save session
+    const sessionData = { ...res.user, token: res.token };
+    this.currentUser.set(res.user);
+    localStorage.setItem('devfolio_session', JSON.stringify(sessionData));
   }
 
   logout() {

@@ -14,7 +14,7 @@ import { UpperCasePipe } from '@angular/common';
         <div class="flex items-center justify-between h-14">
           
           <!-- Logo -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 cursor-pointer" (click)="navigateTo('home')">
             <div class="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-lg">D</div>
             <span class="text-sm font-semibold tracking-wide text-white hidden sm:block">DevFolio</span>
           </div>
@@ -52,6 +52,7 @@ import { UpperCasePipe } from '@angular/common';
                   </button>
                   <div class="absolute right-0 top-full pt-2 hidden group-hover:block w-32">
                      <div class="glass-panel rounded-lg py-1">
+                        <button (click)="navigateTo('dashboard')" class="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-white/5 transition-colors">Dashboard</button>
                         <button (click)="authService.logout()" class="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-white/5 transition-colors">Log out</button>
                      </div>
                   </div>
@@ -92,6 +93,7 @@ import { UpperCasePipe } from '@angular/common';
             
              @if (authService.currentUser()) {
                  <div class="px-4 py-2 text-xs text-gray-500 uppercase tracking-widest">Signed in as {{ authService.currentUser()?.username }}</div>
+                 <button (click)="navigateTo('dashboard')" class="block w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-white/5 text-sm font-medium">Dashboard</button>
                  <button (click)="authService.logout(); toggleMobileMenu()" class="block w-full text-left px-4 py-3 rounded-lg text-red-400 hover:bg-white/5 text-sm font-medium">Log out</button>
              } @else {
                  <button (click)="navigateTo('auth')" class="block w-full text-left px-4 py-3 rounded-lg text-white bg-brand-600 text-sm font-medium">Login</button>

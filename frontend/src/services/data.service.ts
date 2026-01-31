@@ -1,5 +1,6 @@
 
 import { Injectable, signal, effect, computed, inject } from '@angular/core';
+import { ApiService } from './api.service';
 
 export interface Project {
   id: string;
@@ -55,6 +56,8 @@ export interface ProfileData {
   providedIn: 'root'
 })
 export class DataService {
+  private api = inject(ApiService);
+  
   // Initial default data
   private defaultProfile: ProfileData = {
     role: 'Frontend & Full Stack Engineer',
@@ -133,26 +136,12 @@ Signals provide a reactive primitive that Angular can use to know *exactly* what
     if (storedPosts) this.posts.set(JSON.parse(storedPosts));
   }
 
-  // --- API Integrations (Mocked for now with LocalStorage sync) ---
+  // --- API Integrations ---
   
-  // Interactions API Mock
-  async getPostInteractions(postId: string): Promise<{likes: number, userLiked: boolean, comments: Comment[]}> {
-      // In a real app, fetch from backend. Here we return empty structure or mock.
-      // This will be handled by the component using fetch/http client.
-      return { likes: 0, userLiked: false, comments: [] };
-  }
-
   async encryptUrl(url: string): Promise<string> {
-      // Call backend
       try {
-        const token = localStorage.getItem('devfolio_session') ? JSON.parse(localStorage.getItem('devfolio_session')!).token : ''; // Hacky auth get
-        const res = await fetch('/api/media/encrypt-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ url })
-        });
-        const json = await res.json();
-        return json.data.encryptedUrl;
+        const res = await this.api.post<{ encryptedUrl: string }>('/api/media/encrypt-url', { url });
+        return res.encryptedUrl;
       } catch(e) {
           console.error(e);
           return url; // Fallback
@@ -202,13 +191,11 @@ Signals provide a reactive primitive that Angular can use to know *exactly* what
 
   // --- Selectors for Pagination & Filtering ---
   
-  // Get unique tags from projects
   getProjectTags = computed(() => {
     const allTags = this.projects().flatMap(p => p.tags);
     return [...new Set(allTags)];
   });
 
-  // Get unique tags from posts
   getPostTags = computed(() => {
     const allTags = this.posts().flatMap(p => p.tags || []);
     return [...new Set(allTags)];

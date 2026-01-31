@@ -1,10 +1,11 @@
 
-import { Component, input, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed } from '@angular/core';
+import { Component, input, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { LanguageService } from '../services/language.service';
 import { GeminiService } from '../services/gemini.service';
 import { AuthService } from '../services/auth.service';
 import { DataService, Comment } from '../services/data.service';
+import { SocialService } from '../services/social.service';
 import { marked } from 'marked';
 import Prism from 'prismjs';
 import pangu from 'pangu';
@@ -74,7 +75,14 @@ import { FormsModule } from '@angular/forms';
       <article class="flex-1 min-w-0 animate-fade-in">
         <header class="mb-10 border-b border-white/10 pb-10">
           <div class="flex items-center gap-4 text-sm text-brand-500 mb-4">
-             <span class="text-white bg-white/10 px-2 py-0.5 rounded">{{ post().authorName || 'Anonymous' }}</span>
+             <div class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+                <span>{{ post().authorName || 'Anonymous' }}</span>
+                @if (authService.currentUser() && authService.currentUser()?.id !== post().createdBy) {
+                    <button (click)="toggleFollow()" class="text-xs font-bold px-2 py-0.5 rounded bg-brand-500 text-white hover:bg-brand-600 transition-colors">
+                        {{ isFollowing() ? 'Unfollow' : 'Follow' }}
+                    </button>
+                }
+             </div>
              <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
              <span>{{ post().createdAt | date:'mediumDate' }}</span>
              <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
@@ -173,12 +181,13 @@ import { FormsModule } from '@angular/forms';
     </div>
   `
 })
-export class BlogPostComponent implements AfterViewInit, OnDestroy {
+export class BlogPostComponent implements OnInit, AfterViewInit, OnDestroy {
   post = input.required<any>();
   langService = inject(LanguageService);
   geminiService = inject(GeminiService);
   authService = inject(AuthService);
-  dataService = inject(DataService);
+  socialService = inject(SocialService);
+  apiService = inject(SocialService); // Actually SocialService delegates to ApiService
 
   t = this.langService.text;
   
@@ -193,6 +202,7 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
   // Interactions
   likesCount = signal(0);
   userLiked = signal(false);
+  isFollowing = signal(false);
   comments = signal<Comment[]>([]);
   rootComments = computed(() => {
       const all = this.comments();
@@ -219,19 +229,16 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
 
   @ViewChild('contentRef') contentRef!: ElementRef;
 
-  constructor() {}
-
   ngOnInit() {
     this.processContent();
     this.loadInteractions();
+    this.checkFollow();
+    // Record view in history
+    this.socialService.recordView(this.post().id);
   }
 
   processContent() {
     let rawMarkdown = this.post().content || '';
-    
-    // Decrypt URLs locally (Simulation of "Frontend handles the encrypted url")
-    // In our backend controller, we prefixed secure urls with "SECURE::" and base64 encoded them.
-    // Regex to find ![alt](SECURE::...)
     rawMarkdown = rawMarkdown.replace(/!\[(.*?)\]\(SECURE::(.*?)\)/g, (match, alt, hash) => {
         try {
             const url = atob(hash);
@@ -262,9 +269,13 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
   }
 
   async loadInteractions() {
-     // Mock fetch for now, replace with http call in real app
      try {
         const token = localStorage.getItem('devfolio_session') ? JSON.parse(localStorage.getItem('devfolio_session')!).token : '';
+        // Manually using fetch here because SocialService uses ApiService which might throw error on success status check? 
+        // No, ApiService returns data directly.
+        // Let's use fetch manually for custom interaction endpoint or update DataService
+        
+        // Use raw fetch for now as this endpoint isn't fully in SocialService yet or requires special handling
         const res = await fetch(`/api/posts/${this.post().id}/interactions`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -279,29 +290,46 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
      } catch (e) { console.error(e); }
   }
 
-  async toggleLike() {
+  async checkFollow() {
+      if (!this.authService.currentUser() || this.post().createdBy === this.authService.currentUser()?.id) return;
       try {
-        const token = JSON.parse(localStorage.getItem('devfolio_session')!).token;
-        const res = await fetch(`/api/posts/${this.post().id}/like`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.code === 0) {
-            if (data.data.status === 'liked') {
-                this.likesCount.update(n => n + 1);
-                this.userLiked.set(true);
-            } else {
-                this.likesCount.update(n => n - 1);
-                this.userLiked.set(false);
-            }
-        }
+        const res = await this.socialService.checkFollowStatus(this.post().createdBy);
+        this.isFollowing.set(res.isFollowing);
       } catch(e) { console.error(e); }
   }
 
+  async toggleFollow() {
+      try {
+        if (this.isFollowing()) {
+            await this.socialService.unfollow(this.post().createdBy);
+            this.isFollowing.set(false);
+        } else {
+            await this.socialService.follow(this.post().createdBy);
+            this.isFollowing.set(true);
+        }
+      } catch (e: any) {
+        alert(e.message || 'Action failed');
+      }
+  }
+
+  async toggleLike() {
+      try {
+        const data = await this.socialService.toggleLike(this.post().id);
+        if (data.status === 'liked') {
+            this.likesCount.update(n => n + 1);
+            this.userLiked.set(true);
+        } else {
+            this.likesCount.update(n => n - 1);
+            this.userLiked.set(false);
+        }
+      } catch(e: any) { alert(e.message); }
+  }
+
   async submitComment() {
-      await this.postComment(this.newCommentContent, null);
-      this.newCommentContent = '';
+      try {
+        await this.postComment(this.newCommentContent, null);
+        this.newCommentContent = '';
+      } catch(e: any) { alert(e.message); }
   }
 
   replyTo(commentId: string) {
@@ -310,41 +338,28 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
   }
 
   async submitReply(parentId: string) {
-      await this.postComment(this.replyContent, parentId);
-      this.replyingTo.set(null);
+      try {
+        await this.postComment(this.replyContent, parentId);
+        this.replyingTo.set(null);
+      } catch(e: any) { alert(e.message); }
   }
 
   async postComment(content: string, parentId: string | null) {
-      try {
-        const token = JSON.parse(localStorage.getItem('devfolio_session')!).token;
-        const res = await fetch(`/api/posts/${this.post().id}/comments`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ content, parentId })
-        });
-        const data = await res.json();
-        if (data.code === 0) {
-            // Optimistically add
-            const newC: Comment = {
-                ...data.data,
-                username: this.authService.currentUser()!.username,
-                createdAt: new Date().toISOString()
-            };
-            this.comments.update(c => [newC, ...c]);
-        }
-      } catch(e) { console.error(e); }
+      const data = await this.socialService.addComment(this.post().id, content, parentId);
+      const newC: Comment = {
+          ...data as any,
+          username: this.authService.currentUser()!.username,
+          createdAt: new Date().toISOString()
+      };
+      this.comments.update(c => [newC, ...c]);
   }
 
   async deleteComment(id: string) {
       if (!confirm('Delete this comment?')) return;
       try {
-         const token = JSON.parse(localStorage.getItem('devfolio_session')!).token;
-         await fetch(`/api/posts/comments/${id}`, {
-             method: 'DELETE',
-             headers: { 'Authorization': `Bearer ${token}` }
-         });
+         await this.socialService.deleteComment(id);
          this.comments.update(c => c.filter(x => x.id !== id));
-      } catch(e) {}
+      } catch(e: any) { alert(e.message); }
   }
 
   async generateSummary() {
@@ -360,21 +375,16 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
 
   generateTOC() {
     if (!this.contentRef) return;
-    
     const headers = this.contentRef.nativeElement.querySelectorAll('h2, h3');
     const tocData: {id: string, text: string, level: number}[] = [];
-    
     headers.forEach((header: HTMLElement, index: number) => {
-      if (!header.id) {
-        header.id = 'header-' + index;
-      }
+      if (!header.id) header.id = 'header-' + index;
       tocData.push({
         id: header.id,
         text: header.textContent || '',
         level: parseInt(header.tagName.substring(1))
       });
     });
-    
     this.toc.set(tocData);
   }
 
@@ -382,33 +392,23 @@ export class BlogPostComponent implements AfterViewInit, OnDestroy {
     const scrollTop = window.scrollY;
     const docHeight = document.body.scrollHeight - window.innerHeight;
     const scrollPercent = (scrollTop / docHeight) * 100;
-    
     const progressBar = document.getElementById('reading-progress');
-    if (progressBar) {
-      progressBar.style.width = `${scrollPercent}%`;
-    }
+    if (progressBar) progressBar.style.width = `${scrollPercent}%`;
 
     if (!this.contentRef) return;
     const headers = this.contentRef.nativeElement.querySelectorAll('h2, h3');
     let currentId = '';
-    
     headers.forEach((header: HTMLElement) => {
-      const top = header.getBoundingClientRect().top;
-      if (top < 150) { 
-        currentId = header.id;
-      }
+      if (header.getBoundingClientRect().top < 150) currentId = header.id;
     });
-    
-    if (currentId) {
-      this.activeHeader.set(currentId);
-    }
+    if (currentId) this.activeHeader.set(currentId);
   }
 
   scrollToHeader(e: Event, id: string) {
     e.preventDefault();
     const el = document.getElementById(id);
     if (el) {
-       const y = el.getBoundingClientRect().top + window.scrollY - 100; // Offset
+       const y = el.getBoundingClientRect().top + window.scrollY - 100;
        window.scrollTo({top: y, behavior: 'smooth'});
     }
   }

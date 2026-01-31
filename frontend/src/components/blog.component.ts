@@ -40,7 +40,13 @@ declare const EasyMDE: any;
           </div>
           <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-white/10">
             <button (click)="closeForm()" class="px-6 py-2.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
-            <button (click)="savePost()" class="px-6 py-2.5 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-200 transition-colors">Save Article</button>
+            
+            <button (click)="savePost('draft')" class="px-6 py-2.5 text-sm font-medium border border-white/20 text-white rounded-full hover:bg-white/10 transition-colors">
+                Save Draft
+            </button>
+            <button (click)="savePost('published')" class="px-6 py-2.5 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-200 transition-colors">
+                Publish
+            </button>
           </div>
         </div>
       </div>
@@ -184,7 +190,7 @@ export class BlogComponent {
     if (this.selectedTag()) {
       posts = posts.filter(p => p.tags?.includes(this.selectedTag()!));
     }
-    // Sort by timestamp desc (handle Date object or string)
+    // Sort by timestamp desc
     return posts.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
@@ -200,8 +206,8 @@ export class BlogComponent {
 
   totalPages = computed(() => Math.ceil(this.filteredPosts().length / this.pageSize));
 
-  // Form
-  emptyPost: BlogPost = { 
+  // Form (Added status property locally for type safety, though interface usually comes from DataService)
+  emptyPost: any = { 
       id: '', 
       title: '', 
       createdAt: new Date().toISOString(), 
@@ -209,9 +215,10 @@ export class BlogComponent {
       readTime: '5 min read', 
       excerpt: '', 
       content: '', 
-      tags: [] 
+      tags: [],
+      status: 'draft' 
   };
-  currentForm: BlogPost = { ...this.emptyPost };
+  currentForm: any = { ...this.emptyPost };
 
   // --- Auth Checks ---
   isOwner(p: BlogPost): boolean {
@@ -244,7 +251,8 @@ export class BlogComponent {
         id: Date.now().toString(), 
         createdAt: new Date().toISOString(),
         createdBy: user ? user.id : 'anon',
-        authorName: user ? user.username : 'Anonymous'
+        authorName: user ? user.username : 'Anonymous',
+        status: 'draft'
     };
     this.showForm.set(true);
     setTimeout(() => this.initEditor(), 100);
@@ -282,7 +290,6 @@ export class BlogComponent {
               {
                   name: "upload-image",
                   action: async (editor: any) => {
-                      // Custom Image Upload logic
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = 'image/*';
@@ -290,19 +297,11 @@ export class BlogComponent {
                           const file = e.target.files[0];
                           if (!file) return;
                           
-                          // 1. Convert to Base64 (Simulating Cloud Upload)
                           const base64 = await this.dataService.fileToDataURL(file);
-                          
-                          // 2. Call Backend to Encrypt/Hash the URL
                           const encryptedUrl = await this.dataService.encryptUrl(base64);
                           
-                          // 3. Insert into editor
                           const cm = editor.codemirror;
-                          const stat = editor.getState(cm);
-                          const options = editor.options;
-                          const url = encryptedUrl;
-                          
-                          const text = `![Image](${url})`;
+                          const text = `![Image](${encryptedUrl})`;
                           cm.replaceSelection(text);
                       };
                       input.click();
@@ -324,18 +323,24 @@ export class BlogComponent {
     }
   }
 
-  savePost() {
-    // Basic word count estimate for read time
+  savePost(status: 'draft' | 'published' = 'published') {
     const words = this.currentForm.content.trim().split(/\s+/).length;
     this.currentForm.readTime = Math.ceil(words / 200) + ' min read';
     this.currentForm.updatedAt = new Date().toISOString();
+    this.currentForm.status = status;
 
     if (this.formMode === 'add') {
       this.dataService.addPost(this.currentForm);
     } else {
       this.dataService.updatePost(this.currentForm);
     }
-    this.closeForm();
+    
+    // In a real app, you might show a "Draft Saved" toast here
+    if (status === 'draft') {
+        alert('Draft saved locally (simulated).');
+    } else {
+        this.closeForm();
+    }
   }
 
   updateTags(val: string) {

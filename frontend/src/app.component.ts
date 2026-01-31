@@ -8,11 +8,12 @@ import { BlogComponent } from './components/blog.component';
 import { AboutComponent } from './components/about.component';
 import { UsesComponent } from './components/uses.component';
 import { AuthComponent } from './components/auth.component';
+import { DashboardComponent } from './components/dashboard.component';
 import { LanguageService } from './services/language.service';
 
 @Component({
   selector: 'app-root',
-  imports: [NavComponent, HeroComponent, ProjectsComponent, ChatComponent, BlogComponent, AboutComponent, UsesComponent, AuthComponent],
+  imports: [NavComponent, HeroComponent, ProjectsComponent, ChatComponent, BlogComponent, AboutComponent, UsesComponent, AuthComponent, DashboardComponent],
   template: `
     <div class="min-h-screen bg-brand-darker text-slate-100 font-sans selection:bg-brand-500 selection:text-white transition-colors duration-300">
       <app-nav (navChange)="navigate($event)"></app-nav>
@@ -55,6 +56,9 @@ import { LanguageService } from './services/language.service';
           }
           @case ('auth') {
             <app-auth (loginSuccess)="navigate('home')"></app-auth>
+          }
+          @case ('dashboard') {
+            <app-dashboard></app-dashboard>
           }
         }
       </main>
