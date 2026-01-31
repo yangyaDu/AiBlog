@@ -18,6 +18,9 @@ export const profile = sqliteTable("profile", {
   titleHighlight: text("title_highlight").notNull(),
   titleSuffix: text("title_suffix").notNull(),
   intro: text("intro").notNull(),
+  
+  // Audit
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
 });
 
 // Projects Table
@@ -30,6 +33,12 @@ export const projects = sqliteTable("projects", {
   image: text("image").notNull(), // URL path
   link: text("link"),
   date: integer("date").notNull(), // Timestamp
+  
+  // Audit Fields
+  createdBy: text("created_by").notNull(),
+  updatedBy: text("updated_by"),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
 }, (table) => ({
   // Indexes for query optimization
   authorIdx: index("projects_author_idx").on(table.authorId),
@@ -59,4 +68,33 @@ export const posts = sqliteTable("posts", {
   // Indexes for query optimization
   creatorIdx: index("posts_creator_idx").on(table.createdBy),
   createdIdx: index("posts_created_idx").on(table.createdAt),
+}));
+
+// Post Likes Table
+export const postLikes = sqliteTable("post_likes", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").notNull(),
+  userId: text("user_id").notNull(),
+  
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }), // Logical deletion
+}, (table) => ({
+  postIdx: index("likes_post_idx").on(table.postId),
+  userIdx: index("likes_user_idx").on(table.userId),
+}));
+
+// Post Comments Table
+export const postComments = sqliteTable("post_comments", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").notNull(),
+  parentId: text("parent_id"), // For threaded comments
+  userId: text("user_id").notNull(),
+  content: text("content").notNull(),
+  
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }), // Logical deletion
+}, (table) => ({
+  postIdx: index("comments_post_idx").on(table.postId),
+  parentIdx: index("comments_parent_idx").on(table.parentId),
 }));

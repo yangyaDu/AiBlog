@@ -1,3 +1,4 @@
+
 import { db } from "../../db";
 import { projects } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -45,7 +46,8 @@ export const ProjectService = {
       tags: JSON.stringify(tagsList),
       image: imageUrl || "https://picsum.photos/600/400",
       date: Date.now(),
-      link: ""
+      link: "",
+      createdBy: userId
     };
 
     await db.insert(projects).values(newProject);

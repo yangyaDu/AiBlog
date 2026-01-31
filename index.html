@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- PrismJS Theme (Tomorrow Night) -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <!-- EasyMDE (Rich Markdown Editor) -->
+  <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+  <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <script>
     // Polyfill process for browser environment to prevent 'process is not defined' crash
@@ -59,7 +65,7 @@
             },
             slideUp: {
               '0%': { opacity: '0', transform: 'translateY(30px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
+              '100%': { opacity: '1' },
             }
           }
         }
@@ -160,6 +166,27 @@
     .markdown-body h2 { font-size: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; }
     .markdown-body p { margin-bottom: 1.5rem; line-height: 1.7; color: var(--color-text-dim); font-size: 1.0625rem; }
     
+    /* EasyMDE Dark Mode Overrides */
+    .editor-toolbar {
+        border-color: var(--glass-border) !important;
+        background-color: var(--color-bg-panel) !important;
+    }
+    .editor-toolbar button {
+        color: var(--color-text-main) !important;
+    }
+    .editor-toolbar button:hover, .editor-toolbar button.active {
+        background: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+    }
+    .CodeMirror {
+        background-color: var(--color-bg-main) !important;
+        color: var(--color-text-main) !important;
+        border-color: var(--glass-border) !important;
+    }
+    .editor-preview {
+        background-color: var(--color-bg-main) !important;
+    }
+
     /* Progress Bar */
     #reading-progress {
       position: fixed;

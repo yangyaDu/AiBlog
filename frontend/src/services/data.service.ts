@@ -1,5 +1,5 @@
 
-import { Injectable, signal, effect, computed } from '@angular/core';
+import { Injectable, signal, effect, computed, inject } from '@angular/core';
 
 export interface Project {
   id: string;
@@ -30,6 +30,17 @@ export interface BlogPost {
   // Timestamps (Strings from API JSON)
   createdAt: string | Date;
   updatedAt: string | Date;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  parentId: string | null;
+  userId: string;
+  username: string;
+  content: string;
+  createdAt: string | Date;
+  children?: Comment[]; // For UI tree
 }
 
 export interface ProfileData {
@@ -65,7 +76,6 @@ export class DataService {
     }
   ];
 
-  // Default posts with new structure
   private defaultPosts: BlogPost[] = [
     {
       id: '1',
@@ -121,6 +131,32 @@ Signals provide a reactive primitive that Angular can use to know *exactly* what
     if (storedProfile) this.profile.set(JSON.parse(storedProfile));
     if (storedProjects) this.projects.set(JSON.parse(storedProjects));
     if (storedPosts) this.posts.set(JSON.parse(storedPosts));
+  }
+
+  // --- API Integrations (Mocked for now with LocalStorage sync) ---
+  
+  // Interactions API Mock
+  async getPostInteractions(postId: string): Promise<{likes: number, userLiked: boolean, comments: Comment[]}> {
+      // In a real app, fetch from backend. Here we return empty structure or mock.
+      // This will be handled by the component using fetch/http client.
+      return { likes: 0, userLiked: false, comments: [] };
+  }
+
+  async encryptUrl(url: string): Promise<string> {
+      // Call backend
+      try {
+        const token = localStorage.getItem('devfolio_session') ? JSON.parse(localStorage.getItem('devfolio_session')!).token : ''; // Hacky auth get
+        const res = await fetch('/api/media/encrypt-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ url })
+        });
+        const json = await res.json();
+        return json.data.encryptedUrl;
+      } catch(e) {
+          console.error(e);
+          return url; // Fallback
+      }
   }
 
   // --- Profile Actions ---

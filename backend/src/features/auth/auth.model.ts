@@ -1,13 +1,18 @@
+
 import { t, Static } from "elysia";
 
 export const RegisterSchema = t.Object({
   username: t.String(),
   password: t.String(),
+  captchaCode: t.String(), // User input
+  expectedCaptcha: t.String(), // Encrypted/hashed expected answer from frontend (Simulating Session)
 });
 
 export const LoginSchema = t.Object({
   username: t.String(),
   password: t.String(),
+  captchaCode: t.String(),
+  expectedCaptcha: t.String(),
 });
 
 export const AuthResponseSchema = t.Object({

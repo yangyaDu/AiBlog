@@ -1,3 +1,4 @@
+
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
@@ -11,6 +12,7 @@ import { AuthController } from "./features/auth/auth.controller";
 import { ProfileController } from "./features/profile/profile.controller";
 import { ProjectController } from "./features/projects/project.controller";
 import { PostController } from "./features/posts/post.controller";
+import { MediaController } from "./features/media/media.controller"; // Added
 
 import { BizError, ErrorCode } from "./utils/types";
 import { Result } from "./utils/response";
@@ -71,6 +73,7 @@ const app = new Elysia()
   .use(ProfileController)
   .use(ProjectController)
   .use(PostController)
+  .use(MediaController)
   
   // 6. Start
   .listen(API_PORT);

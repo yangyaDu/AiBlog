@@ -1,11 +1,13 @@
 
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { LanguageService } from '../services/language.service';
 import { BlogPostComponent } from './blog-post.component';
 import { DataService, BlogPost } from '../services/data.service';
 import { AuthService } from '../services/auth.service';
 import { FormsModule } from '@angular/forms';
+
+declare const EasyMDE: any;
 
 @Component({
   selector: 'app-blog',
@@ -14,7 +16,7 @@ import { FormsModule } from '@angular/forms';
     <!-- Blog Form Modal -->
     @if (showForm()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div class="glass-panel border border-white/10 p-8 rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+        <div class="glass-panel border border-white/10 p-8 rounded-2xl w-full max-w-5xl shadow-2xl max-h-[95vh] overflow-y-auto flex flex-col">
           <h2 class="text-2xl font-semibold text-white mb-6">{{ formMode === 'add' ? 'New Post' : 'Edit Post' }}</h2>
           <div class="space-y-4 flex-1 overflow-y-auto">
              <div>
@@ -30,13 +32,14 @@ import { FormsModule } from '@angular/forms';
               <input [(ngModel)]="currentForm.excerpt" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:ring-2 focus:ring-brand-500 outline-none">
             </div>
             
-            <div class="flex flex-col h-[400px]">
-              <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Content (Markdown supported: Images, Code, Video)</label>
-              <textarea [(ngModel)]="currentForm.content" class="flex-1 w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white font-mono text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 outline-none" placeholder="# Hello World\n\n![Image](url)\n\n<video src='url'></video>"></textarea>
+            <div class="flex flex-col h-[500px]">
+              <label class="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Content</label>
+              <!-- EasyMDE Container -->
+              <textarea #editorArea></textarea>
             </div>
           </div>
           <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-white/10">
-            <button (click)="showForm.set(false)" class="px-6 py-2.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
+            <button (click)="closeForm()" class="px-6 py-2.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Cancel</button>
             <button (click)="savePost()" class="px-6 py-2.5 text-sm font-medium bg-white text-black rounded-full hover:bg-gray-200 transition-colors">Save Article</button>
           </div>
         </div>
@@ -171,6 +174,10 @@ export class BlogComponent {
   showForm = signal(false);
   formMode: 'add' | 'edit' = 'add';
   
+  // Editor Instance
+  easyMDE: any;
+  @ViewChild('editorArea') editorArea!: ElementRef;
+  
   // Computed Data
   filteredPosts = computed(() => {
     let posts = this.dataService.posts();
@@ -209,7 +216,6 @@ export class BlogComponent {
   // --- Auth Checks ---
   isOwner(p: BlogPost): boolean {
     const user = this.authService.currentUser();
-    // Check createdBy first (new logic), fall back to checking if user is admin
     return !!user && (user.id === p.createdBy || user.username === 'admin');
   }
 
@@ -241,12 +247,75 @@ export class BlogComponent {
         authorName: user ? user.username : 'Anonymous'
     };
     this.showForm.set(true);
+    setTimeout(() => this.initEditor(), 100);
   }
 
   openEdit(post: BlogPost) {
     this.formMode = 'edit';
     this.currentForm = { ...post };
     this.showForm.set(true);
+    setTimeout(() => this.initEditor(), 100);
+  }
+
+  closeForm() {
+    this.showForm.set(false);
+    if (this.easyMDE) {
+        this.easyMDE.toTextArea();
+        this.easyMDE = null;
+    }
+  }
+
+  initEditor() {
+      if (this.easyMDE) return;
+      
+      this.easyMDE = new EasyMDE({
+          element: this.editorArea.nativeElement,
+          initialValue: this.currentForm.content,
+          theme: 'dark',
+          placeholder: "Write something amazing...",
+          spellChecker: false,
+          toolbar: [
+              "bold", "italic", "heading", "|", 
+              "quote", "unordered-list", "ordered-list", "|",
+              "link", "image", "code", "|",
+              "preview", "side-by-side", "fullscreen", "|",
+              {
+                  name: "upload-image",
+                  action: async (editor: any) => {
+                      // Custom Image Upload logic
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = async (e: any) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          
+                          // 1. Convert to Base64 (Simulating Cloud Upload)
+                          const base64 = await this.dataService.fileToDataURL(file);
+                          
+                          // 2. Call Backend to Encrypt/Hash the URL
+                          const encryptedUrl = await this.dataService.encryptUrl(base64);
+                          
+                          // 3. Insert into editor
+                          const cm = editor.codemirror;
+                          const stat = editor.getState(cm);
+                          const options = editor.options;
+                          const url = encryptedUrl;
+                          
+                          const text = `![Image](${url})`;
+                          cm.replaceSelection(text);
+                      };
+                      input.click();
+                  },
+                  className: "fa fa-upload",
+                  title: "Upload Image",
+              }
+          ]
+      });
+      
+      this.easyMDE.codemirror.on("change", () => {
+         this.currentForm.content = this.easyMDE.value();
+      });
   }
 
   deletePost(id: string) {
@@ -266,7 +335,7 @@ export class BlogComponent {
     } else {
       this.dataService.updatePost(this.currentForm);
     }
-    this.showForm.set(false);
+    this.closeForm();
   }
 
   updateTags(val: string) {
