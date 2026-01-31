@@ -2,7 +2,7 @@
 import { db } from "../../db";
 import { follows, users } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
-import { ErrorCode, ServiceContext, OptionalServiceContext } from "../../utils/types";
+import { ErrorCode, ServiceContext } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
 export const FollowService = {

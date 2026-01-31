@@ -20,7 +20,7 @@ export const ProfileService = {
     return [ErrorCode.SUCCESS, p];
   },
 
-  async updateProfile(ctx: ServiceContext, data: UpdateProfileDTO): Promise<[ErrorCode, boolean]> {
+  async updateProfile(_ctx: ServiceContext, data: UpdateProfileDTO): Promise<[ErrorCode, boolean]> {
     // Access session via ctx.session
     await db
       .insert(profile)

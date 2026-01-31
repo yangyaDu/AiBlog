@@ -46,7 +46,7 @@ export const NotificationService = {
     return [ErrorCode.SUCCESS, list];
   },
 
-  async markAsRead(ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, any]> {
+  async markAsRead(_ctx: ServiceContext, options: { id: string }): Promise<[ErrorCode, any]> {
     // Note: In strict implementation we should check if notif belongs to user
     await db.update(notifications)
       .set({ isRead: true })

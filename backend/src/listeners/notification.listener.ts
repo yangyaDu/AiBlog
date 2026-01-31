@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 
 // 1. Comment Notification
 EventBus.on('comment.created', async (payload) => {
-    const { commentId, postId, userId, parentId, content } = payload;
+    const { postId, userId, parentId } = payload;
 
     if (parentId) {
         // Reply: Notify Parent Comment Author
