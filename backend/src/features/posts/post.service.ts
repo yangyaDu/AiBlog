@@ -1,9 +1,9 @@
 
 import { db } from "../../db";
-import { posts, users } from "../../db/schema";
-import { eq, desc, getTableColumns } from "drizzle-orm";
+import { posts, users, postLikes, postComments } from "../../db/schema";
+import { eq, desc, getTableColumns, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ErrorCode } from "../../utils/types";
+import { ErrorCode, SessionInfo } from "../../utils/types";
 import { CreatePostDTO, PostResponse } from "./post.model";
 import { EventBus } from "../../utils/event-bus";
 
@@ -41,7 +41,7 @@ export const PostService = {
     }];
   },
 
-  async create(userId: string, body: CreatePostDTO): Promise<[ErrorCode, any]> {
+  async create(sessionInfo: SessionInfo, body: CreatePostDTO): Promise<[ErrorCode, any]> {
     const tagsList = body.tags.split(",").map((s) => s.trim());
     
     const wordCount = body.content.trim().split(/\s+/).length;
@@ -57,18 +57,17 @@ export const PostService = {
       readTime: readTime,
       tags: JSON.stringify(tagsList),
       status: status,
-      createdBy: userId,
-      updatedBy: userId,
+      createdBy: sessionInfo.id,
+      updatedBy: sessionInfo.id,
     };
 
     await db.insert(posts).values(newPost);
     
-    // Emit Event if published
     if (status === 'published') {
-        EventBus.emit('post.created', { postId, authorId: userId });
+        EventBus.emit('post.created', { postId, authorId: sessionInfo.id });
     }
     
-    const user = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).get();
+    const user = await db.select({ username: users.username }).from(users).where(eq(users.id, sessionInfo.id)).get();
 
     return [ErrorCode.SUCCESS, {
       ...newPost,
@@ -79,17 +78,44 @@ export const PostService = {
     }];
   },
 
-  async delete(userId: string, postId: string): Promise<[ErrorCode, boolean | null]> {
+  async delete(sessionInfo: SessionInfo, postId: string): Promise<[ErrorCode, boolean | null]> {
     const existing = await db.select().from(posts).where(eq(posts.id, postId)).get();
     
     if (!existing) {
        return [ErrorCode.NOT_FOUND, null];
     }
-    if (existing.createdBy !== userId) {
+    if (existing.createdBy !== sessionInfo.id) {
        return [ErrorCode.FORBIDDEN, null];
     }
 
     await db.delete(posts).where(eq(posts.id, postId));
     return [ErrorCode.SUCCESS, true];
+  },
+
+  async getInteractions(sessionInfo: SessionInfo | null, postId: string): Promise<[ErrorCode, any]> {
+    // 1. Get Likes
+    const likesCount = (await db.select().from(postLikes).where(and(eq(postLikes.postId, postId), isNull(postLikes.deletedAt))).all()).length;
+    let userLiked = false;
+    if (sessionInfo) {
+       const like = await db.select().from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, sessionInfo.id), isNull(postLikes.deletedAt))).get();
+       userLiked = !!like;
+    }
+
+    // 2. Get Comments
+    const comments = await db.select({
+        id: postComments.id,
+        postId: postComments.postId,
+        parentId: postComments.parentId,
+        userId: postComments.userId,
+        username: users.username,
+        content: postComments.content,
+        createdAt: postComments.createdAt
+    })
+    .from(postComments)
+    .leftJoin(users, eq(postComments.userId, users.id))
+    .where(and(eq(postComments.postId, postId), isNull(postComments.deletedAt)))
+    .orderBy(desc(postComments.createdAt));
+
+    return [ErrorCode.SUCCESS, { likes: likesCount, userLiked, comments }];
   }
 };

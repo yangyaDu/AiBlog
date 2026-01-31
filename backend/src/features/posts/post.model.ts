@@ -6,7 +6,7 @@ export const CreatePostSchema = t.Object({
   excerpt: t.String(),
   content: t.String(), // Markdown text
   tags: t.String(),
-  status: t.Optional(t.Union([t.Literal('draft'), t.Literal('published')])), // New field
+  status: t.Optional(t.Union([t.Literal('draft'), t.Literal('published')])),
 });
 
 export const PostItemSchema = t.Object({
@@ -15,11 +15,10 @@ export const PostItemSchema = t.Object({
   excerpt: t.String(),
   content: t.String(),
   readTime: t.String(),
-  status: t.String(), // Return status to frontend
+  status: t.String(),
   tags: t.Array(t.String()),
   coverImage: t.Union([t.String(), t.Null(), t.Undefined()]),
   
-  // Audit info
   createdBy: t.String(),
   authorName: t.Union([t.String(), t.Null()]),
   createdAt: t.Any(), 
@@ -31,6 +30,20 @@ export const PostListResponseSchema = t.Object({
   total: t.Number(),
   page: t.Number(),
   totalPages: t.Number()
+});
+
+export const InteractionsResponseSchema = t.Object({
+    likes: t.Number(),
+    userLiked: t.Boolean(),
+    comments: t.Array(t.Object({
+        id: t.String(),
+        postId: t.String(),
+        parentId: t.Union([t.String(), t.Null()]),
+        userId: t.String(),
+        username: t.String(),
+        content: t.String(),
+        createdAt: t.Any()
+    }))
 });
 
 export type CreatePostDTO = Static<typeof CreatePostSchema>;

@@ -15,7 +15,6 @@ export const AuthController = new Elysia({ prefix: "/api/auth" })
       
       if (err !== ErrorCode.SUCCESS) {
         if (err === ErrorCode.USER_EXISTS) {
-             // Code 1001
              throw new BizError(ErrorCode.USER_EXISTS, "User already exists", 409);
         }
         throw new BizError(err, "Registration failed");
@@ -36,7 +35,6 @@ export const AuthController = new Elysia({ prefix: "/api/auth" })
       const [err, user] = await AuthService.login(body as LoginDTO);
       
       if (err !== ErrorCode.SUCCESS || !user) {
-        // Code 1002
         throw new BizError(ErrorCode.INVALID_CREDENTIALS, "Invalid username or password", 401);
       }
       

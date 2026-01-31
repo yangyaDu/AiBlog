@@ -22,3 +22,8 @@ export class BizError extends Error {
     super(message);
   }
 }
+
+export interface SessionInfo {
+  id: string;
+  username: string;
+}

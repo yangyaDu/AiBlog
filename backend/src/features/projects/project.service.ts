@@ -4,7 +4,7 @@ import { projects } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { saveFile } from "../../utils/file";
-import { ErrorCode } from "../../utils/types";
+import { ErrorCode, SessionInfo } from "../../utils/types";
 import { CreateProjectDTO, ProjectResponse } from "./project.model";
 
 export const ProjectService = {
@@ -30,7 +30,7 @@ export const ProjectService = {
     }];
   },
 
-  async create(userId: string, body: CreateProjectDTO): Promise<[ErrorCode, any]> {
+  async create(sessionInfo: SessionInfo, body: CreateProjectDTO): Promise<[ErrorCode, any]> {
     let imageUrl = body.imageStr;
     if (body.file instanceof File) {
       imageUrl = await saveFile(body.file);
@@ -40,14 +40,14 @@ export const ProjectService = {
 
     const newProject = {
       id: randomUUID(),
-      authorId: userId,
+      authorId: sessionInfo.id,
       title: body.title,
       description: body.description,
       tags: JSON.stringify(tagsList),
       image: imageUrl || "https://picsum.photos/600/400",
       date: Date.now(),
       link: "",
-      createdBy: userId
+      createdBy: sessionInfo.id
     };
 
     await db.insert(projects).values(newProject);
@@ -57,13 +57,13 @@ export const ProjectService = {
     }];
   },
 
-  async delete(userId: string, projectId: string): Promise<[ErrorCode, boolean | null]> {
+  async delete(sessionInfo: SessionInfo, projectId: string): Promise<[ErrorCode, boolean | null]> {
     const existing = await db.select().from(projects).where(eq(projects.id, projectId)).get();
     
     if (!existing) {
        return [ErrorCode.NOT_FOUND, null];
     }
-    if (existing.authorId !== userId) {
+    if (existing.authorId !== sessionInfo.id) {
        return [ErrorCode.FORBIDDEN, null];
     }
 

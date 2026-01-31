@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { notifications, users } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ErrorCode } from "../../utils/types";
+import { ErrorCode, SessionInfo } from "../../utils/types";
 
 export const NotificationService = {
   // Internal method called by Event Bus listeners
@@ -20,7 +20,7 @@ export const NotificationService = {
     });
   },
 
-  async getMyNotifications(userId: string): Promise<[ErrorCode, any]> {
+  async getMyNotifications(sessionInfo: SessionInfo): Promise<[ErrorCode, any]> {
     const list = await db.select({
         id: notifications.id,
         type: notifications.type,
@@ -32,16 +32,16 @@ export const NotificationService = {
     })
     .from(notifications)
     .leftJoin(users, eq(notifications.senderId, users.id))
-    .where(eq(notifications.userId, userId))
+    .where(eq(notifications.userId, sessionInfo.id))
     .orderBy(desc(notifications.createdAt));
 
     return [ErrorCode.SUCCESS, list];
   },
 
-  async markAsRead(userId: string, notificationId: string): Promise<[ErrorCode, any]> {
+  async markAsRead(_sessionInfo: SessionInfo, notificationId: string): Promise<[ErrorCode, any]> {
     await db.update(notifications)
       .set({ isRead: true })
-      .where(eq(notifications.id, notificationId)); // Simplification: strict user check recommended in prod
+      .where(eq(notifications.id, notificationId)); 
     return [ErrorCode.SUCCESS, null];
   }
 };

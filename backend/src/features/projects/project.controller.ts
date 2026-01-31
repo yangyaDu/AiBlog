@@ -1,9 +1,10 @@
+
 import { Elysia, t } from "elysia";
 import { ProjectService } from "./project.service";
-import { CreateProjectSchema, CreateProjectDTO, ProjectListResponseSchema, ProjectItemSchema } from "./project.model";
+import { CreateProjectSchema, ProjectListResponseSchema, ProjectItemSchema } from "./project.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode } from "../../utils/types";
+import { BizError, ErrorCode, SessionInfo } from "../../utils/types";
 
 export const ProjectController = new Elysia({ prefix: "/api/projects" })
   .use(authMiddleware)
@@ -20,11 +21,12 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
       200: createResponseSchema(ProjectListResponseSchema)
     }
   })
-  .post("/", async ({ body, user }: any) => {
+  .post("/", async ({ body, user }) => {
     if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
+    const sessionInfo = user as SessionInfo;
     // @ts-ignore: Bun specific types for File
-    const [err, newProject] = await ProjectService.create(user.id, body);
+    const [err, newProject] = await ProjectService.create(sessionInfo, body);
     
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to create project");
 
@@ -35,11 +37,11 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
       200: createResponseSchema(ProjectItemSchema)
     }
   })
-  .delete("/:id", async ({ params, user }: any) => {
+  .delete("/:id", async ({ params, user }) => {
     if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    // @ts-ignore
-    const [err] = await ProjectService.delete(user.id, params.id);
+    const sessionInfo = user as SessionInfo;
+    const [err] = await ProjectService.delete(sessionInfo, params.id);
     
     if (err !== ErrorCode.SUCCESS) {
         if (err === ErrorCode.NOT_FOUND) throw new BizError(err, "Project not found", 404);
