@@ -1,3 +1,4 @@
+
 import { Elysia, t } from "elysia";
 import { jwt } from "@elysiajs/jwt";
 import { getRouteConfig } from "../config/route.config";
@@ -23,7 +24,7 @@ export const authMiddleware = new Elysia()
 
     // Skip auth for public routes
     if (config.authIgnored) {
-        return { user: null };
+        return { sessionInfo: null };
     }
 
     const authHeader = headers.authorization;
@@ -38,5 +39,5 @@ export const authMiddleware = new Elysia()
       throw new BizError(ErrorCode.UNAUTHORIZED, "Invalid or expired token", 401);
     }
 
-    return { user: payload };
+    return { sessionInfo: payload };
   });

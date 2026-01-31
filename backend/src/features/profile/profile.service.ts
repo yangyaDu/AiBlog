@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { profile } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { UpdateProfileDTO } from "./profile.model";
-import { ErrorCode, SessionInfo } from "../../utils/types";
+import { ErrorCode, ServiceContext } from "../../utils/types";
 
 export const ProfileService = {
   async getProfile(): Promise<[ErrorCode, any]> {
@@ -20,8 +20,8 @@ export const ProfileService = {
     return [ErrorCode.SUCCESS, p];
   },
 
-  async updateProfile(_sessionInfo: SessionInfo, data: UpdateProfileDTO): Promise<[ErrorCode, boolean]> {
-    // Note: sessionInfo is passed for audit/auth purposes if needed in future
+  async updateProfile(ctx: ServiceContext, data: UpdateProfileDTO): Promise<[ErrorCode, boolean]> {
+    // Access session via ctx.session
     await db
       .insert(profile)
       .values({ id: 1, ...data })

@@ -4,7 +4,7 @@ import { ProfileService } from "./profile.service";
 import { UpdateProfileSchema, ProfileResponseSchema } from "./profile.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode, SessionInfo } from "../../utils/types";
+import { BizError, ErrorCode } from "../../utils/types";
 
 export const ProfileController = new Elysia({ prefix: "/api/profile" })
   .use(authMiddleware)
@@ -20,11 +20,10 @@ export const ProfileController = new Elysia({ prefix: "/api/profile" })
   })
   .put(
     "/",
-    async ({ body, user }) => {
-      if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+    async ({ body, sessionInfo }) => {
+      if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
       
-      const sessionInfo = user as SessionInfo;
-      const [err] = await ProfileService.updateProfile(sessionInfo, body);
+      const [err] = await ProfileService.updateProfile({ session: sessionInfo }, body);
       if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to update profile");
 
       return Result.success(null, "Profile updated");

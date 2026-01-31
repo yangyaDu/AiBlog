@@ -4,7 +4,7 @@ import { ProjectService } from "./project.service";
 import { CreateProjectSchema, ProjectListResponseSchema, ProjectItemSchema } from "./project.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode, SessionInfo } from "../../utils/types";
+import { BizError, ErrorCode } from "../../utils/types";
 
 export const ProjectController = new Elysia({ prefix: "/api/projects" })
   .use(authMiddleware)
@@ -21,12 +21,11 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
       200: createResponseSchema(ProjectListResponseSchema)
     }
   })
-  .post("/", async ({ body, user }) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .post("/", async ({ body, sessionInfo }) => {
+    if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    const sessionInfo = user as SessionInfo;
     // @ts-ignore: Bun specific types for File
-    const [err, newProject] = await ProjectService.create(sessionInfo, body);
+    const [err, newProject] = await ProjectService.create({ session: sessionInfo }, body);
     
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to create project");
 
@@ -37,11 +36,10 @@ export const ProjectController = new Elysia({ prefix: "/api/projects" })
       200: createResponseSchema(ProjectItemSchema)
     }
   })
-  .delete("/:id", async ({ params, user }) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .delete("/:id", async ({ params, sessionInfo }) => {
+    if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    const sessionInfo = user as SessionInfo;
-    const [err] = await ProjectService.delete(sessionInfo, params.id);
+    const [err] = await ProjectService.delete({ session: sessionInfo }, params.id);
     
     if (err !== ErrorCode.SUCCESS) {
         if (err === ErrorCode.NOT_FOUND) throw new BizError(err, "Project not found", 404);

@@ -3,12 +3,12 @@ import { db } from "../../db";
 import { postLikes } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ErrorCode, SessionInfo } from "../../utils/types";
+import { ErrorCode, ServiceContext } from "../../utils/types";
 import { EventBus } from "../../utils/event-bus";
 
 export const LikeService = {
-  async toggle(sessionInfo: SessionInfo, postId: string): Promise<[ErrorCode, { status: 'liked' | 'unliked' }]> {
-    const userId = sessionInfo.id;
+  async toggle(ctx: ServiceContext, postId: string): Promise<[ErrorCode, { status: 'liked' | 'unliked' }]> {
+    const userId = ctx.session.id;
     const existing = await db.select().from(postLikes)
         .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId))).get();
 

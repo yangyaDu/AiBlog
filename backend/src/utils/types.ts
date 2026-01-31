@@ -27,3 +27,13 @@ export interface SessionInfo {
   id: string;
   username: string;
 }
+
+// Standard Context for Services
+export interface ServiceContext {
+  session: SessionInfo;
+}
+
+// For Read-Only operations where auth is optional
+export interface OptionalServiceContext {
+  session: SessionInfo | null;
+}

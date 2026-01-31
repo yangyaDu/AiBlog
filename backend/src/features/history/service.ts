@@ -3,11 +3,11 @@ import { db } from "../../db";
 import { postViews, posts } from "../../db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ErrorCode, SessionInfo } from "../../utils/types";
+import { ErrorCode, ServiceContext } from "../../utils/types";
 
 export const HistoryService = {
-  async recordView(sessionInfo: SessionInfo, postId: string): Promise<[ErrorCode, null]> {
-    const userId = sessionInfo.id;
+  async recordView(ctx: ServiceContext, postId: string): Promise<[ErrorCode, null]> {
+    const userId = ctx.session.id;
     // Upsert logic: Update time if exists, else insert
     const existing = await db.select().from(postViews)
         .where(and(eq(postViews.userId, userId), eq(postViews.postId, postId)))
@@ -27,7 +27,7 @@ export const HistoryService = {
     return [ErrorCode.SUCCESS, null];
   },
 
-  async getMyHistory(sessionInfo: SessionInfo, page: number = 1, limit: number = 10): Promise<[ErrorCode, any]> {
+  async getMyHistory(ctx: ServiceContext, page: number = 1, limit: number = 10): Promise<[ErrorCode, any]> {
     const offset = (page - 1) * limit;
     
     const history = await db.select({
@@ -38,7 +38,7 @@ export const HistoryService = {
     })
     .from(postViews)
     .leftJoin(posts, eq(postViews.postId, posts.id))
-    .where(eq(postViews.userId, sessionInfo.id))
+    .where(eq(postViews.userId, ctx.session.id))
     .orderBy(desc(postViews.viewedAt))
     .limit(limit)
     .offset(offset);

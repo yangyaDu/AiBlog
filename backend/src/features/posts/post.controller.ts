@@ -4,7 +4,7 @@ import { PostService } from "./post.service";
 import { CreatePostSchema, PostListResponseSchema, PostItemSchema, InteractionsResponseSchema } from "./post.model";
 import { Result, createResponseSchema } from "../../utils/response";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { BizError, ErrorCode, SessionInfo } from "../../utils/types";
+import { BizError, ErrorCode } from "../../utils/types";
 
 export const PostController = new Elysia({ prefix: "/api/posts" })
   .use(authMiddleware)
@@ -17,28 +17,25 @@ export const PostController = new Elysia({ prefix: "/api/posts" })
     return Result.success(data);
   }, { response: { 200: createResponseSchema(PostListResponseSchema) } })
 
-  .post("/", async ({ body, user }) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .post("/", async ({ body, sessionInfo }) => {
+    if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    const sessionInfo = user as SessionInfo;
-    const [err, newPost] = await PostService.create(sessionInfo, body);
+    const [err, newPost] = await PostService.create({ session: sessionInfo }, body);
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to create article");
     return Result.success(newPost, "Article created");
   }, { body: CreatePostSchema, response: { 200: createResponseSchema(PostItemSchema) } })
 
-  .delete("/:id", async ({ params, user }) => {
-    if (!user) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
+  .delete("/:id", async ({ params, sessionInfo }) => {
+    if (!sessionInfo) throw new BizError(ErrorCode.UNAUTHORIZED, "Unauthorized", 401);
     
-    const sessionInfo = user as SessionInfo;
-    const [err] = await PostService.delete(sessionInfo, params.id);
+    const [err] = await PostService.delete({ session: sessionInfo }, params.id);
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to delete article");
     return Result.success(null, "Article deleted");
   }, { response: { 200: createResponseSchema(t.Null()) } })
 
   // --- Aggregated Data View ---
-  .get("/:id/interactions", async ({ params, user }) => {
-    const sessionInfo = user as SessionInfo | null;
-    const [err, data] = await PostService.getInteractions(sessionInfo, params.id);
+  .get("/:id/interactions", async ({ params, sessionInfo }) => {
+    const [err, data] = await PostService.getInteractions({ session: sessionInfo }, params.id);
     if (err !== ErrorCode.SUCCESS) throw new BizError(err, "Failed to fetch interactions");
     
     return Result.success(data);

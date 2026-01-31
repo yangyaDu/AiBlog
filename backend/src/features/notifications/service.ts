@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { notifications, users } from "../../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ErrorCode, SessionInfo } from "../../utils/types";
+import { ErrorCode, ServiceContext } from "../../utils/types";
 
 export const NotificationService = {
   // Internal method called by Event Bus listeners
@@ -20,7 +20,7 @@ export const NotificationService = {
     });
   },
 
-  async getMyNotifications(sessionInfo: SessionInfo): Promise<[ErrorCode, any]> {
+  async getMyNotifications(ctx: ServiceContext): Promise<[ErrorCode, any]> {
     const list = await db.select({
         id: notifications.id,
         type: notifications.type,
@@ -32,13 +32,14 @@ export const NotificationService = {
     })
     .from(notifications)
     .leftJoin(users, eq(notifications.senderId, users.id))
-    .where(eq(notifications.userId, sessionInfo.id))
+    .where(eq(notifications.userId, ctx.session.id))
     .orderBy(desc(notifications.createdAt));
 
     return [ErrorCode.SUCCESS, list];
   },
 
-  async markAsRead(_sessionInfo: SessionInfo, notificationId: string): Promise<[ErrorCode, any]> {
+  async markAsRead(ctx: ServiceContext, notificationId: string): Promise<[ErrorCode, any]> {
+    // Note: In strict implementation we should check if notif belongs to user
     await db.update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.id, notificationId)); 
